@@ -70,7 +70,7 @@ async function main()
 
     // POINT POSITIONS (x, y)
 const positions = new Float32Array([
-    -0.15, -0.10,  // Red
+    0.25, 0.8,  // Red
      0.0, 0.0,  // Green
      0.35, 0.20   // Blue
 ]);
