@@ -19,7 +19,7 @@ fn vs_main(
         vec2f( 0.5,  0.5)
     );
 
-    let width = 0.5;
+    let width = 0.8;
 
     let offset = corners[vertexIndex] * width;
 
