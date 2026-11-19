@@ -98,142 +98,86 @@ const colorBuffer = device.createBuffer({
 
 device.queue.writeBuffer(colorBuffer, 0, colors);
 
+ 
     // RENDER PIPELINE
-
-  // RENDER FUNCTION
-
-function render() {
-
-    const commandEncoder =
-        device.createCommandEncoder();
-
-    const textureView =
-        context.getCurrentTexture().createView();
-
-    const renderPass =
-        commandEncoder.beginRenderPass({
-
-            colorAttachments: [{
-                view: textureView,
-
-                clearValue: {
-                    r: 0,
-                    g: 0,
-                    b: 0,
-                    a: 1
-                },
-
-                loadOp: "clear",
-                storeOp: "store"
-            }]
-        });
-
-    // SET PIPELINE
-    renderPass.setPipeline(pipeline);
-
-    // POSITION BUFFER
-    renderPass.setVertexBuffer(
-        0,
-        positionBuffer
-    );
-
-    // COLOUR BUFFER
-    renderPass.setVertexBuffer(
-        1,
-        colorBuffer
-    );
-
-    // DRAW 4 VERTICES FOR 3 INSTANCES
-    renderPass.draw(4, 3);
-
-    renderPass.end();
-
-    device.queue.submit([
-        commandEncoder.finish()
-    ]);
-
-    requestAnimationFrame(render);
-}
-
-// START RENDERING
-requestAnimationFrame(render);
 
     const pipeline =
         device.createRenderPipeline({
             layout: "auto",
             vertex: {
-                module:
-                    shaderModule,
-                entryPoint:
-                    "vs_main",
-                buffers: [positionBufferLayout, colorBufferLayout]
+                module: shaderModule,
+                entryPoint: "vs_main",
+                buffers: [
+                    positionBufferLayout,
+                    colorBufferLayout
+                ]
             },
             fragment: {
                 module: shaderModule,
                 entryPoint: "fs_main",
                 targets: [{
                     format: canvasFormat,
-                    blend: { 
-                      color: {
-                        srcFactor: "src-alpha",
-                        dstFactor: "one-minus-src-alpha",
-                        operation: "add",
-                      },
-                      alpha: {
-                        srcFactor: "one",
-                        dstFactor: "one-minus-src-alpha",
-                        operation: "add"
-                      }
+                    blend: {
+                        color: {
+                            srcFactor: "src-alpha",
+                            dstFactor: "one-minus-src-alpha",
+                            operation: "add",
+                        },
+                        alpha: {
+                            srcFactor: "one",
+                            dstFactor: "one-minus-src-alpha",
+                            operation: "add"
+                        }
                     }
                 }]
             },
-
             primitive: {
                 topology: "triangle-strip"
             },
         });
 
-    // CAMERA - Translation & 45 Degree Angle
+    // RENDER FUNCTION
 
-    const aspect =
-        canvas.width / canvas.height;
+    function render() {
 
-        // SET PIPELINE
-        renderPass.setPipeline(
-            pipeline
-        );
+        const commandEncoder =
+            device.createCommandEncoder();
 
-        // SET VERTEX BUFFER
-        renderPass.setVertexBuffer(
-            0,
-            positionBuffer
-        );
+        const textureView =
+            context.getCurrentTexture().createView();
 
-        // SET INDEX BUFFER
-        renderPass.setIndexBuffer(
-            indexBuffer,
-            "uint32"
-        );
+        const renderPass =
+            commandEncoder.beginRenderPass({
+                colorAttachments: [{
+                    view: textureView,
+                    clearValue: {
+                        r: 0,
+                        g: 0,
+                        b: 0,
+                        a: 1
+                    },
+                    loadOp: "clear",
+                    storeOp: "store"
+                }]
+            });
 
-        const model3 = translation(0, 0, 0);
+        renderPass.setPipeline(pipeline);
 
-        drawSphere(
-            renderPass,
-            model3,
-            uniformBuffer,
-            uniformBindGroup,
-            view
-        );
+        renderPass.setVertexBuffer(0, positionBuffer);
+        renderPass.setVertexBuffer(1, colorBuffer);
+
+        // Four vertices for each of three instances
+        renderPass.draw(4, 3);
 
         renderPass.end();
 
         device.queue.submit([
             commandEncoder.finish()
         ]);
+
         requestAnimationFrame(render);
     }
-    // Updating the sphere instead of rendering
-    updateSphere();
+
+    // START RENDERING
     requestAnimationFrame(render);
 }
-
