@@ -72,7 +72,7 @@ async function main()
 const positions = new Float32Array([
     -0.15, -0.10,  // Red
      0.0, 0.0,  // Green
-     0.15, 0.10   // Blue
+     0.35, 0.20   // Blue
 ]);
 
 // POINT COLOURS (RGBA)
