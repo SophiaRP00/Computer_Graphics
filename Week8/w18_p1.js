@@ -151,10 +151,10 @@ device.queue.writeBuffer(colorBuffer, 0, colors);
                 colorAttachments: [{
                     view: textureView,
                     clearValue: {
-                        r: 0,
-                        g: 0,
-                        b: 0,
-                        a: 1
+                        r: 0.68,
+                        g: 0.85,
+                        b: 0.95,
+                        a: 1.0
                     },
                     loadOp: "clear",
                     storeOp: "store"
