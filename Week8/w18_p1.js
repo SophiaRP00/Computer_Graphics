@@ -36,7 +36,7 @@ async function main()
 
     // Load shader
     const shaderCode =
-        await fetch("w18_1.wgsl")
+        await fetch("w18_p1.wgsl")
             .then(response => response.text());
         console.log("Shader loaded: ");
         console.log(shaderCode);
