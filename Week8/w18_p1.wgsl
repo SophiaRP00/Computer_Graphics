@@ -1,61 +1,42 @@
-struct Uniforms {
-    matrix: mat4x4<f32>,
-};
 
-@group(0) @binding(0)
-var<uniform> uniforms: Uniforms;
-
-@group(0) @binding(1)
-var earthTexture: texture_2d<f32>;
-
-@group(0) @binding(2)
-var earthSampler: sampler;
-
-struct VertexInput {
-    @location(0) position: vec3<f32>,
-    @location(1) kd: vec3<f32>,
-};
 
 struct VertexOutput {
-    @builtin(position) clipPosition: vec4<f32>,
-    @location(0) spherePosition: vec3<f32>,
-    @location(1) diffuse: f32,
+    @builtin(position) position: vec4f,
+    @location(0) color: vec4f
 };
 
 @vertex
-fn vs_main(input: VertexInput) -> VertexOutput {
+fn vs_main(
+    @builtin(vertex_index) vertexIndex: u32,
+    @location(0) pointPosition: vec2f,
+    @location(1) pointColor: vec4f
+) -> VertexOutput {
+
+    var corners = array<vec2f, 4>(
+        vec2f(-0.5, -0.5),
+        vec2f( 0.5, -0.5),
+        vec2f(-0.5,  0.5),
+        vec2f( 0.5,  0.5)
+    );
+
+    let width = 0.5;
+
+    let offset = corners[vertexIndex] * width;
+
     var output: VertexOutput;
 
-    output.clipPosition =
-        uniforms.matrix * vec4<f32>(input.position, 1.0);
+    output.position = vec4f(
+        pointPosition + offset,
+        0.0,
+        1.0
+    );
 
-    let n = normalize(input.position);
-    let l = normalize(vec3<f32>(0.0, 0.0, 1.0));
-
-    output.spherePosition = n;
-    output.diffuse = 0.45 + 0.55 * max(dot(n, l), 0.0);
+    output.color = pointColor;
 
     return output;
 }
 
 @fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let n = normalize(input.spherePosition);
-    let pi = 3.14159265359;
-
-    let u = atan2(n.z, n.x) / (2.0 * pi) + 0.5;
-    let v = 0.5 - asin(clamp(n.y, -1.0, 1.0)) / pi;
-
-    let uv = vec2<f32>(u, v);
-
-    let earthColor = textureSample(
-        earthTexture,
-        earthSampler,
-        uv
-    );
-
-    return vec4<f32>(
-        earthColor.rgb * input.diffuse,
-        earthColor.a
-    );
+fn fs_main(input: VertexOutput) -> @location(0) vec4f {
+    return input.color;
 }
