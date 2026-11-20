@@ -1,7 +1,7 @@
 "use strict";
 
 // Importing function
-import {readPlyParser } from "./PLYParser.js";
+import {readPlyFile } from "./PLYParser.js";
 
 
 window.onload = function() {
@@ -50,41 +50,65 @@ async function main()
             code: shaderCode
         });
 
-    // Point Rendering
+    //Loading Lego File
+    const elements = await readPlyFile('./lego-2d-sorted.ply');
+    const vertices = elements.find(e => e.name === 'vertex');
+    
+    console.log(vertices);
+    console.log("Number of vertices:", vertices.count);
+    console.log("Vertex Stride:", vertices.stride);
 
-    const positionBufferLayout = {
-      arrayStride: 2 * 4, 
-      stepMode: "instance",
-      attributes: [{
-        format: 'float32x2',
-        offset: 0,
-        shaderLocation: 0,      
-      }],
-    };
+    const gaussian_splats = elements[0];
 
-    const colorBufferLayout = {
-      arrayStride: 4 * 4, 
-      stepMode: "instance",
-      attributes: [{
-        format: 'float32x4',
-        offset: 0,
-        shaderLocation: 1,      
-      }],
-    }; 
+    // Vertex Buffer
+    const vertexBuffer = device.createBuffer({
+        size: gaussian_splats.data.byteLength, 
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST{);
 
-    // POINT POSITIONS (x, y)
-const positions = new Float32Array([
-    0.25, -0.5,  // Red
-     0.0, 0.0,  // Green
-     0.40, 0.20   // Blue
-]);
+    device.queue.writeBuffer(vertexBuffer, 0, gaussian_splats.data);
 
-// POINT COLOURS (RGBA)
-const colors = new Float32Array([
-    1.0, 0.0, 0.0, 0.3,  // Red
-    0.0, 1.0, 0.0, 0.3,  // Green
-    0.0, 0.0, 1.0, 0.3   // Blue
-]);
+    const vertexBufferLayout = {
+        arrayStride: 64,
+        stepMode: "instance",
+        attributes: [{
+            format: "float32x2",
+            offset: 0,
+            shaderLocation: 0},
+         {
+             format: "float32x2",
+             offset: 8,
+             shaderLocation: 1},
+         {
+             format: "float32x2",
+             offset: 16,
+             shaderLocation: 2},
+         {
+             format: "float32x2",
+             offset: 24,
+             shaderLocation: 3},
+        {     
+            format: "float32x3",
+            offset: 32,
+            shaderLocation: 4
+        },
+        {
+            format: "float32",
+            offset: 44,
+            shaderLocation: 5
+        },
+        {
+            format: "float32x3",
+            offset: 48,
+            shaderLocation: 6
+        },
+        {
+            format: "float32",
+            offset: 60,
+            shaderLocation: 7
+        }
+    ]
+};
+                    
 
 // POSITION BUFFER
 const positionBuffer = device.createBuffer({
