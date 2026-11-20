@@ -1,5 +1,9 @@
 "use strict";
 
+// Importing function
+import {readPlyParser } from "./PLYParser.js";
+
+
 window.onload = function() {
     main();
 }
