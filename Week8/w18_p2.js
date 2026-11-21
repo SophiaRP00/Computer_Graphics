@@ -63,7 +63,7 @@ async function main()
     // Vertex Buffer
     const vertexBuffer = device.createBuffer({
         size: gaussian_splats.data.byteLength, 
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST{);
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST});
 
     device.queue.writeBuffer(vertexBuffer, 0, gaussian_splats.data);
 
@@ -108,25 +108,27 @@ async function main()
         }
     ]
 };
+    
+
+    // Uniform Buffer
+    const uniformBuffrr = device.createBuffer({
+        size: 8,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST});
+
+    device.queue.writeBuffer(
+        uniformBuffer, 0, new Float32Array([canvas.width, canvas.height])
+);
+    
+
+    const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: 0,
+        resources: {
+            buffer: uniformBuffer}
+    })
+});
+
                     
-
-// POSITION BUFFER
-const positionBuffer = device.createBuffer({
-    size: positions.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-});
-
-device.queue.writeBuffer(positionBuffer, 0, positions);
-
-// COLOUR BUFFER
-const colorBuffer = device.createBuffer({
-    size: colors.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-});
-
-device.queue.writeBuffer(colorBuffer, 0, colors);
-
- 
     // RENDER PIPELINE
 
     const pipeline =
@@ -189,6 +191,7 @@ device.queue.writeBuffer(colorBuffer, 0, colors);
             });
 
         renderPass.setPipeline(pipeline);
+        renderpass.setBindGroup(0, bindGroup);
         renderPass.setVertexBuffer(0, vertexBuffer);
 
         // Four vertices for each of three instances
