@@ -111,24 +111,13 @@ async function main()
     
 
     // Uniform Buffer
-    const uniformBuffrr = device.createBuffer({
+    const uniformBuffer = device.createBuffer({
         size: 8,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST});
 
     device.queue.writeBuffer(
         uniformBuffer, 0, new Float32Array([canvas.width, canvas.height])
 );
-    
-
-    const bindGroup = device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: 0,
-        resources: {
-            buffer: uniformBuffer}
-    })
-});
-
-                    
     // RENDER PIPELINE
 
     const pipeline =
@@ -164,6 +153,15 @@ async function main()
                 topology: "triangle-strip"
             },
         });
+
+    const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [{
+        binding: 0,
+        resource: {
+            buffer: uniformBuffer}
+    }]
+});
 
     // RENDER FUNCTION
 
