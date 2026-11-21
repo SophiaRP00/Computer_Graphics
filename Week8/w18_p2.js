@@ -136,8 +136,7 @@ device.queue.writeBuffer(colorBuffer, 0, colors);
                 module: shaderModule,
                 entryPoint: "vs_main",
                 buffers: [
-                    positionBufferLayout,
-                    colorBufferLayout
+                    vertexBufferLayout
                 ]
             },
             fragment: {
@@ -190,12 +189,10 @@ device.queue.writeBuffer(colorBuffer, 0, colors);
             });
 
         renderPass.setPipeline(pipeline);
-
-        renderPass.setVertexBuffer(0, positionBuffer);
-        renderPass.setVertexBuffer(1, colorBuffer);
+        renderPass.setVertexBuffer(0, vertexBuffer);
 
         // Four vertices for each of three instances
-        renderPass.draw(4, 3);
+        renderPass.draw(4, gaussian_splats.count);
 
         renderPass.end();
 
