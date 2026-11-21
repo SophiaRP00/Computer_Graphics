@@ -14,7 +14,7 @@
  * @param {String} fileName 
  * @returns {PlyElements[]}
  */
-async function readPlyFile(fileName)
+export async function readPlyFile(fileName)
 {
     return await fetch(fileName).then(response => response.bytes()).then(bytes => {
         let pos = 0
