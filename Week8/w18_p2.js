@@ -189,7 +189,7 @@ async function main()
             });
 
         renderPass.setPipeline(pipeline);
-        renderpass.setBindGroup(0, bindGroup);
+        renderPass.setBindGroup(0, bindGroup);
         renderPass.setVertexBuffer(0, vertexBuffer);
 
         // Four vertices for each of three instances
