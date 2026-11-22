@@ -96,35 +96,35 @@ async function main(status)
 
     const gaussian_splats = elements[0];
 
-    const firstSplat = new DataView(
+    const gaussian_splats = elements[0];
+
+if (!gaussian_splats) {
+    throw new Error("No PLY elements found.");
+}
+
+if (gaussian_splats.stride !== 64) {
+    throw new Error("Unexpected vertex stride: " +
+                    gaussian_splats.stride);
+}
+
+if (gaussian_splats.data.byteLength !==
+    gaussian_splats.count * 64) {
+    throw new Error("PLY data size does not match vertex count.");
+}
+
+const firstSplat = new DataView(
     gaussian_splats.data.buffer,
     gaussian_splats.data.byteOffset,
     gaussian_splats.data.byteLength
 );
 
+const red = firstSplat.getFloat32(32, true);
+const green = firstSplat.getFloat32(36, true);
+const blue = firstSplat.getFloat32(40, true);
+
 status.textContent =
-    "First RGB: " +
-    firstSplat.getFloat32(32, true) + ", " +
-    firstSplat.getFloat32(36, true) + ", " +
-    firstSplat.getFloat32(40, true);
-
-    if (!gaussian_splats) {
-        throw new Error("No PLY elements found.");
-    }
-
-    if (gaussian_splats.stride !== 64) {
-        throw new Error("Unexpected vertex stride: " +
-                        gaussian_splats.stride);
-    }
-
-    if (gaussian_splats.data.byteLength !==
-        gaussian_splats.count * 64) {
-        throw new Error("PLY data size does not match vertex count.");
-    }
-
-    status.textContent =
-        "6. PLY loaded: " + gaussian_splats.count + " splats.";
-
+    "First RGB: " + red + ", " + green + ", " + blue;
+    
     // Vertex Buffer
     const vertexBuffer = device.createBuffer({
         size: gaussian_splats.data.byteLength,
