@@ -1,4 +1,3 @@
-
 "use strict";
 
 /**
@@ -6,17 +5,14 @@
  * @typedef {{name: String, count: number, properties: PlyProperty[], stride: number, data: Uint8Array}} PlyElements
  */
 
-export async function readPlyFile(fileName)
-{
+export async function readPlyFile(fileName) {
     const response = await fetch(fileName);
 
     if (!response.ok) {
         throw new Error("Could not load PLY file: " + response.status);
     }
 
-    // Use arrayBuffer for broader browser compatibility
-    const buffer = await response.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
+    const bytes = new Uint8Array(await response.arrayBuffer());
 
     let pos = 0;
     const elements = [];
@@ -27,7 +23,6 @@ export async function readPlyFile(fileName)
         while (pos < bytes.length && bytes[pos++] !== 0x0a);
 
         const lineEnd = pos;
-
         const line = new TextDecoder("ascii").decode(
             bytes.subarray(lineStart, lineEnd)
         ).trim();
@@ -66,8 +61,6 @@ export async function readPlyFile(fileName)
         element.data = data.subarray(0, size);
         data = data.subarray(size);
     }
-
-    console.log("PLY file successfully loaded:", elements);
 
     return elements;
 }
