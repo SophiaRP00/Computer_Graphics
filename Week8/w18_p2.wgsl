@@ -80,15 +80,5 @@ fn fs_main(
 
     let delta = fragCoord.xy - input.splatPosition;
 
-    let xx = input.invCovariance.x;
-    let xy = input.invCovariance.y;
-    let yy = input.invCovariance.z;
-
-    let power = xx * delta.x * delta.x
-              + 2.0 * xy * delta.x * delta.y
-              + yy * delta.y * delta.y;
-
-    let gaussian = exp(-0.5 * power);
-
     return vec4f(input.color, 1.0);
 }
