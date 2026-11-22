@@ -1,76 +1,82 @@
-// PLYParser.js was written solely for loading Gaussian splatting files.
-// It therefore lacks support for general .ply features such as:
-// - Any property type outside of float and uint
-// - List properties
-// and probably an untold number of others.
-"use strict"
+
+"use strict";
 
 /**
  * @typedef {{name: String, type: String}} PlyProperty
- * @typedef {{name: String, count: number, properties: PlyProperty[], size: number, data: Uint8Array}} PlyElements
+ * @typedef {{name: String, count: number, properties: PlyProperty[], stride: number, data: Uint8Array}} PlyElements
  */
 
-/**
- * @param {String} fileName 
- * @returns {PlyElements[]}
- */
 export async function readPlyFile(fileName)
 {
-    return await fetch(fileName).then(response => response.bytes()).then(bytes => {
-        let pos = 0
-        const elements = []
+    const response = await fetch(fileName);
 
-        while(pos < bytes.length) {
-            const lineStart = pos;
-            while(pos < bytes.length && bytes[pos++] !== 0x0a);
-            const lineEnd = pos;
+    if (!response.ok) {
+        throw new Error("Could not load PLY file: " + response.status);
+    }
 
-            const line = new TextDecoder("ascii").decode(
-                bytes.subarray(lineStart, lineEnd)
-            ).trimEnd();
+    // Use arrayBuffer for broader browser compatibility
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
 
-            const words = line.split(" ")
+    let pos = 0;
+    const elements = [];
 
-            if(words.length >= 3 && words[0] == "element") {
-                elements.push({
-                    name: words[1],
-                    count: parseInt(words[2]),
-                    properties: [],
-                    stride: 0,
-                    data: new Uint8Array(),
-                })
-            }
+    while (pos < bytes.length) {
+        const lineStart = pos;
 
-            if(words.length >= 3 && words[0] == "property") {
-                elements[elements.length - 1].properties.push({
-                    name: words[2],
-                    type: words[1],
-                })
-            }
+        while (pos < bytes.length && bytes[pos++] !== 0x0a);
 
-            if(line == "end_header") break;
-        }
-        
-        let data = bytes.subarray(pos);
-        
-        for (const element of elements) {
-            for (const property of element.properties) {
-                element.stride += sizeOfType(property.type)
-            }
-            
-            let size = element.stride * element.count;
-            
-            element.data = data.subarray(0, size);
-            data = data.subarray(size);
+        const lineEnd = pos;
+
+        const line = new TextDecoder("ascii").decode(
+            bytes.subarray(lineStart, lineEnd)
+        ).trim();
+
+        const words = line.split(/\s+/);
+
+        if (words.length >= 3 && words[0] === "element") {
+            elements.push({
+                name: words[1],
+                count: parseInt(words[2]),
+                properties: [],
+                stride: 0,
+                data: new Uint8Array()
+            });
         }
 
-        return elements;
-    });
+        if (words.length >= 3 && words[0] === "property") {
+            elements[elements.length - 1].properties.push({
+                name: words[2],
+                type: words[1]
+            });
+        }
+
+        if (line === "end_header") break;
+    }
+
+    let data = bytes.subarray(pos);
+
+    for (const element of elements) {
+        for (const property of element.properties) {
+            element.stride += sizeOfType(property.type);
+        }
+
+        const size = element.stride * element.count;
+
+        element.data = data.subarray(0, size);
+        data = data.subarray(size);
+    }
+
+    console.log("PLY file successfully loaded:", elements);
+
+    return elements;
 }
 
 function sizeOfType(type) {
-    switch(type) {
+    switch (type) {
         case "float": return 4;
         case "uint": return 4;
+        default:
+            throw new Error("Unsupported PLY property type: " + type);
     }
 }
