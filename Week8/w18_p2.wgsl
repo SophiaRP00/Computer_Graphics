@@ -73,10 +73,6 @@ fn vs_main(
 }
 
 @fragment
-fn fs_main(
-    input: VertexOutput,
-    @builtin(position) fragCoord: vec4f
-) -> @location(0) vec4f {
-
+fn fs_main() -> @location(0) vec4f {
     return vec4f(1.0, 0.0, 0.0, 1.0);
 }
