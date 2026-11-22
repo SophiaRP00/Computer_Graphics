@@ -52,7 +52,7 @@ async function main()
 
     //Loading Lego File
     const elements = await readPlyFile('./lego-2d-sorted.ply');
-    const gaussian_splats = elements.find(e => e.name === 'vertex');
+    const gaussian_splats = elements[0];
     
     console.log(gaussian_splats);
     console.log("Number of splats:", gaussian_splats.count);
