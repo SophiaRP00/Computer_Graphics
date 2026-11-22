@@ -273,3 +273,6 @@ async function main(status)
 
     requestAnimationFrame(render);
 }
+
+requestAnimationFrame(render);
+}
