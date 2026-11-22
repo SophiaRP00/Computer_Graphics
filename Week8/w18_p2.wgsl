@@ -88,8 +88,7 @@ fn fs_main(
               + 2.0 * xy * delta.x * delta.y
               + yy * delta.y * delta.y;
 
-    let safePower = clamp(power, 0.0, 80.0);
-    let alpha = input.opacity * exp(-0.5 * safePower);
+    let gaussian = exp(-0.5 * power);
 
-    return vec4f(input.color, alpha);
+    return vec4f(input.color, 1.0);
 }
