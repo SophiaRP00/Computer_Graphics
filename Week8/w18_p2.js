@@ -96,6 +96,18 @@ async function main(status)
 
     const gaussian_splats = elements[0];
 
+    const firstSplat = new DataView(
+    gaussian_splats.data.buffer,
+    gaussian_splats.data.byteOffset,
+    gaussian_splats.data.byteLength
+);
+
+status.textContent =
+    "First RGB: " +
+    firstSplat.getFloat32(32, true) + ", " +
+    firstSplat.getFloat32(36, true) + ", " +
+    firstSplat.getFloat32(40, true);
+
     if (!gaussian_splats) {
         throw new Error("No PLY elements found.");
     }
