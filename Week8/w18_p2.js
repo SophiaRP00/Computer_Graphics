@@ -24,8 +24,6 @@ window.onload = async function() {
 
         await main(status);
 
-        status.textContent = "6. Rendering loop started.";
-
     } catch (error) {
         status.textContent = "ERROR: " + error.message;
     }
@@ -96,35 +94,42 @@ async function main(status)
 
     const gaussian_splats = elements[0];
 
-    const gaussian_splats = elements[0];
+    if (!gaussian_splats) {
+        throw new Error("No PLY elements found.");
+    }
 
-if (!gaussian_splats) {
-    throw new Error("No PLY elements found.");
-}
+    if (gaussian_splats.stride !== 64) {
+        throw new Error(
+            "Unexpected vertex stride: " +
+            gaussian_splats.stride
+        );
+    }
 
-if (gaussian_splats.stride !== 64) {
-    throw new Error("Unexpected vertex stride: " +
-                    gaussian_splats.stride);
-}
+    if (gaussian_splats.data.byteLength !==
+        gaussian_splats.count * 64) {
+        throw new Error(
+            "PLY data size does not match vertex count."
+        );
+    }
 
-if (gaussian_splats.data.byteLength !==
-    gaussian_splats.count * 64) {
-    throw new Error("PLY data size does not match vertex count.");
-}
+    // Read first splat RGB values
+    const firstSplat = new DataView(
+        gaussian_splats.data.buffer,
+        gaussian_splats.data.byteOffset,
+        gaussian_splats.data.byteLength
+    );
 
-const firstSplat = new DataView(
-    gaussian_splats.data.buffer,
-    gaussian_splats.data.byteOffset,
-    gaussian_splats.data.byteLength
-);
+    const red = firstSplat.getFloat32(32, true);
+    const green = firstSplat.getFloat32(36, true);
+    const blue = firstSplat.getFloat32(40, true);
 
-const red = firstSplat.getFloat32(32, true);
-const green = firstSplat.getFloat32(36, true);
-const blue = firstSplat.getFloat32(40, true);
+    // Display diagnostic values
+    status.textContent =
+        "First RGB: " +
+        red + ", " +
+        green + ", " +
+        blue;
 
-status.textContent =
-    "First RGB: " + red + ", " + green + ", " + blue;
-    
     // Vertex Buffer
     const vertexBuffer = device.createBuffer({
         size: gaussian_splats.data.byteLength,
@@ -194,12 +199,13 @@ status.textContent =
     device.queue.writeBuffer(
         uniformBuffer,
         0,
-        new Float32Array([canvas.width, canvas.height])
+        new Float32Array([
+            canvas.width,
+            canvas.height
+        ])
     );
 
     // Render Pipeline
-    status.textContent = "7. Creating render pipeline...";
-
     const pipeline = device.createRenderPipeline({
         layout: "auto",
 
@@ -248,47 +254,46 @@ status.textContent =
         }]
     });
 
-    status.textContent = "8. Pipeline created. Starting rendering...";
-
+    // Rendering loop
     function render() {
 
-    const commandEncoder = device.createCommandEncoder();
+        const commandEncoder = device.createCommandEncoder();
 
-    const textureView =
-        context.getCurrentTexture().createView();
+        const textureView =
+            context.getCurrentTexture().createView();
 
-    const renderPass =
-        commandEncoder.beginRenderPass({
-            colorAttachments: [{
-                view: textureView,
+        const renderPass =
+            commandEncoder.beginRenderPass({
+                colorAttachments: [{
+                    view: textureView,
 
-                clearValue: {
-                    r: 0.68,
-                    g: 0.85,
-                    b: 0.95,
-                    a: 1.0
-                },
+                    clearValue: {
+                        r: 0.68,
+                        g: 0.85,
+                        b: 0.95,
+                        a: 1.0
+                    },
 
-                loadOp: "clear",
-                storeOp: "store"
-            }]
-        });
+                    loadOp: "clear",
+                    storeOp: "store"
+                }]
+            });
 
-    // Render Lego Gaussian Splats
-    renderPass.setPipeline(pipeline);
-    renderPass.setBindGroup(0, bindGroup);
-    renderPass.setVertexBuffer(0, vertexBuffer);
+        // Render one Gaussian splat for testing
+        renderPass.setPipeline(pipeline);
+        renderPass.setBindGroup(0, bindGroup);
+        renderPass.setVertexBuffer(0, vertexBuffer);
 
-    renderPass.draw(4, 1);
+        renderPass.draw(4, 1);
 
-    renderPass.end();
+        renderPass.end();
 
-    device.queue.submit([
-        commandEncoder.finish()
-    ]);
+        device.queue.submit([
+            commandEncoder.finish()
+        ]);
+
+        requestAnimationFrame(render);
+    }
 
     requestAnimationFrame(render);
-}
-
-requestAnimationFrame(render);
 }
