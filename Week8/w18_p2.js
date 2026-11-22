@@ -238,54 +238,38 @@ async function main(status)
 
     status.textContent = "8. Pipeline created. Starting rendering...";
 
-    // Render Function
     function render() {
 
-        try {
-            const commandEncoder =
-                device.createCommandEncoder();
+    const commandEncoder = device.createCommandEncoder();
 
-            const textureView =
-                context.getCurrentTexture().createView();
+    const textureView =
+        context.getCurrentTexture().createView();
 
-            const renderPass =
-                commandEncoder.beginRenderPass({
-                    colorAttachments: [{
-                        view: textureView,
+    const renderPass =
+        commandEncoder.beginRenderPass({
+            colorAttachments: [{
+                view: textureView,
 
-                        clearValue: {
-                            r: 0.68,
-                            g: 0.85,
-                            b: 0.95,
-                            a: 1.0
-                        },
+                clearValue: {
+                    r: 0.68,
+                    g: 0.85,
+                    b: 0.95,
+                    a: 1.0
+                },
 
-                        loadOp: "clear",
-                        storeOp: "store"
-                    }]
-                });
+                loadOp: "clear",
+                storeOp: "store"
+            }]
+        });
 
-            renderPass.setPipeline(pipeline);
-            renderPass.setBindGroup(0, bindGroup);
-            renderPass.setVertexBuffer(0, vertexBuffer);
+    // TEMPORARY TEST:
+    // Do not draw any Gaussian splats.
 
-            // Draw four vertices for every Gaussian splat
-            renderPass.draw(4, gaussian_splats.count);
+    renderPass.end();
 
-            renderPass.end();
+    device.queue.submit([
+        commandEncoder.finish()
+    ]);
 
-            device.queue.submit([
-                commandEncoder.finish()
-            ]);
-
-            requestAnimationFrame(render);
-
-        } catch (error) {
-            status.textContent =
-                "RENDER ERROR: " + error.message;
-        }
-    }
-
-    // Start rendering
     requestAnimationFrame(render);
 }
