@@ -54,9 +54,9 @@ async function main()
     const elements = await readPlyFile('./lego-2d-sorted.ply');
     const gaussian_splats = elements.find(e => e.name === 'vertex');
     
-    console.log(vertices);
-    console.log("Number of splats:", guassian_splats.count);
-    console.log("Vertex Stride:", vertices.stride);
+    console.log(gaussian_splats);
+    console.log("Number of splats:", gaussian_splats.count);
+    console.log("Vertex Stride:", gaussian_splats.stride);
 
     // Vertex Buffer
     const vertexBuffer = device.createBuffer({
