@@ -267,7 +267,7 @@ async function main(status)
     renderPass.setBindGroup(0, bindGroup);
     renderPass.setVertexBuffer(0, vertexBuffer);
 
-    renderPass.draw(4, gaussian_splats.count);
+    renderPass.draw(4, 1);
 
     renderPass.end();
 
