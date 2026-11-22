@@ -64,7 +64,7 @@ fn vs_main(
     output.position = vec4f(ndc, 0.0, 1.0);
 
     // Pass Gaussian properties to fragment shader
-    output.color = input.color / 255.0;
+    output.color = input.color;
     output.opacity = input.opacity;
     output.splatPosition = input.position;
     output.invCovariance = input.invCovariance;
@@ -76,7 +76,5 @@ fn vs_main(
 fn fs_main(
     input: VertexOutput
 ) -> @location(0) vec4f {
-
     return vec4f(input.color, 1.0);
 }
-
