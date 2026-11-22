@@ -72,33 +72,8 @@ fn vs_main(
     return output;
 }
 
-
 @fragment
-fn fs_main(
-    input: VertexOutput,
-    @builtin(position) fragCoord: vec4f
-) -> @location(0) vec4f {
-
-    // Distance from fragment to Gaussian centre
-    let delta = fragCoord.xy - input.splatPosition;
-
-    // Inverse covariance matrix:
-    // [ xx  xy ]
-    // [ xy  yy ]
-
-    let xx = input.invCovariance.x;
-    let xy = input.invCovariance.y;
-    let yy = input.invCovariance.z;
-
-    // Gaussian exponent
-    let power =
-        xx * delta.x * delta.x
-        + 2.0 * xy * delta.x * delta.y
-        + yy * delta.y * delta.y;
-
-    // Gaussian alpha
-    let alpha = input.opacity * exp(-0.5 * power);
-
-    return vec4f(input.color, alpha);
+fn fs_main(input: VertexOutput) -> @location(0) vec4f {
+    return vec4f(1.0, 0.0, 0.0, 1.0);
 }
 
