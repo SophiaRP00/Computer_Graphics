@@ -262,8 +262,12 @@ async function main(status)
             }]
         });
 
-    // TEMPORARY TEST:
-    // Do not draw any Gaussian splats.
+    // Render Lego Gaussian Splats
+    renderPass.setPipeline(pipeline);
+    renderPass.setBindGroup(0, bindGroup);
+    renderPass.setVertexBuffer(0, vertexBuffer);
+
+    renderPass.draw(4, gaussian_splats.count);
 
     renderPass.end();
 
