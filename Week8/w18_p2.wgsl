@@ -77,6 +77,5 @@ fn fs_main(
     input: VertexOutput,
     @builtin(position) fragCoord: vec4f
 ) -> @location(0) vec4f {
-    let delta = fragCoord.xy - input.splatPosition;
-    return vec4f(input.color, 1.0);
+    return vec4f(fragCoord.x / 500.0, 0.0, 0.0, 1.0);
 }
