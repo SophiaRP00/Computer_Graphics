@@ -74,5 +74,10 @@ fn vs_main(
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4f {
-    return vec4f(input.color, input.opacity);
+    return vec4f(
+        abs(input.invCovariance.x),
+        abs(input.invCovariance.y),
+        abs(input.invCovariance.z),
+        1.0
+    );
 }
