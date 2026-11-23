@@ -12,6 +12,8 @@ window.onload = async function() {
 }
 
 async function main(status) {
+    const canvas = document.getElementById("s224222");
+    
     // Check WebGPU
     if (!navigator.gpu) {
         throw new Error("WebGPU is not supported.");
