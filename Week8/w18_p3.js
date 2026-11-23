@@ -66,9 +66,11 @@ async function main(status) {
         gaussian_splats.data.byteLength
     );
 
-    const red = firstSplat.getFloat32(32, true);
-    const green = firstSplat.getFloat32(36, true);
-    const blue = firstSplat.getFloat32(40, true);
+    const depthTexture = device.createTexture({
+      size: [canvas.width, canvas.height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
 
     // Create vertex buffer
     const vertexBuffer = device.createBuffer({
@@ -165,27 +167,18 @@ async function main(status) {
             entryPoint: "fs_main",
 
             targets: [{
-                format: canvasFormat,
-
-                blend: {
-                    color: {
-                        srcFactor: "src-alpha",
-                        dstFactor: "one-minus-src-alpha",
-                        operation: "add"
-                    },
-
-                    alpha: {
-                        srcFactor: "one",
-                        dstFactor: "one-minus-src-alpha",
-                        operation: "add"
-                    }
-                }
+                format: canvasFormat
             }]
         },
-
+        
         primitive: {
             topology: "triangle-strip"
-        }
+        },
+        depthStencil: {
+            format: "depth24plus",
+            depthWriteEnabled: true,
+            depthCompare: "less"
+        },
     });
 
     // Bind group
@@ -223,7 +216,14 @@ async function main(status) {
 
                     loadOp: "clear",
                     storeOp: "store"
-                }]
+                }],
+
+                depthStencilAttachment: {
+               view: depthTexture.createView(),
+               depthClearValue: 1.0,
+               depthLoadOp: "clear",
+               depthStoreOp: "store"
+}
             });
 
         renderPass.setPipeline(pipeline);
