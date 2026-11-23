@@ -11,24 +11,7 @@ window.onload = async function() {
     status.style.overflowWrap = "anywhere";
 
     const canvas = document.getElementById("s224222");
-
-    if (canvas) {
-        document.body.insertBefore(status, canvas);
-    } else {
-        document.body.appendChild(status);
-    }
-
-    try {
-        status.textContent = "Starting WebGPU...";
-
-        await main(status);
-
-    } catch (error) {
-        status.textContent = "ERROR:\n" + error.message;
-    }
-};
-
-
+    
 async function main(status) {
 
     // Check WebGPU
@@ -43,12 +26,6 @@ async function main(status) {
     }
 
     const device = await adapter.requestDevice();
-
-    // Display uncaught GPU errors
-    device.addEventListener("uncapturederror", event => {
-        status.textContent =
-            "GPU ERROR:\n" + event.error.message;
-    });
 
     // Canvas
     const canvas = document.getElementById("s224222");
@@ -71,9 +48,6 @@ async function main(status) {
         format: canvasFormat
     });
 
-    // Load WGSL shader
-    status.textContent = "Loading shader...";
-
     const shaderResponse = await fetch("w18_p2.wgsl");
 
     if (!shaderResponse.ok) {
@@ -86,57 +60,11 @@ async function main(status) {
         code: shaderCode
     });
 
-    // Check shader compilation
-    const compilationInfo =
-        await shaderModule.getCompilationInfo();
-
-    const shaderMessages = compilationInfo.messages;
-
-    if (shaderMessages.length > 0) {
-        status.textContent = shaderMessages.map(message =>
-            message.type.toUpperCase() +
-            " (line " + message.lineNum + "): " +
-            message.message
-        ).join("\n");
-    }
-
-    const shaderErrors = shaderMessages.filter(
-        message => message.type === "error"
-    );
-
-    if (shaderErrors.length > 0) {
-        throw new Error(
-            shaderErrors.map(message =>
-                "Line " + message.lineNum + ": " +
-                message.message
-            ).join("\n")
-        );
-    }
-
     // Load PLY
-    status.textContent = "Loading Lego splats...";
-
     const elements =
         await readPlyFile("./lego-2d-sorted.ply");
 
     const gaussian_splats = elements[0];
-
-    if (!gaussian_splats) {
-        throw new Error("No PLY elements found.");
-    }
-
-    if (gaussian_splats.stride !== 64) {
-        throw new Error(
-            "Incorrect stride: " + gaussian_splats.stride
-        );
-    }
-
-    if (
-        gaussian_splats.data.byteLength !==
-        gaussian_splats.count * 64
-    ) {
-        throw new Error("PLY data size is incorrect.");
-    }
 
     // Read first splat colour
     const firstSplat = new DataView(
@@ -230,10 +158,6 @@ async function main(status) {
     );
 
     // Create render pipeline
-    status.textContent = "Creating render pipeline...";
-
-    device.pushErrorScope("validation");
-
     const pipeline = device.createRenderPipeline({
         layout: "auto",
 
@@ -271,14 +195,6 @@ async function main(status) {
         }
     });
 
-    const pipelineError = await device.popErrorScope();
-
-    if (pipelineError) {
-        throw new Error(
-            "Pipeline error:\n" + pipelineError.message
-        );
-    }
-
     // Bind group
     const bindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
@@ -292,15 +208,6 @@ async function main(status) {
     });
 
     // Start rendering
-    status.textContent =
-        "Shader compiled successfully.\n" +
-        "Pipeline created successfully.\n" +
-        "Splats: " + gaussian_splats.count + "\n" +
-        "First RGB: " +
-        red.toFixed(4) + ", " +
-        green.toFixed(4) + ", " +
-        blue.toFixed(4);
-
     function render() {
 
         const commandEncoder =
