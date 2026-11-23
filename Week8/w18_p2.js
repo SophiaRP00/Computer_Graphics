@@ -25,13 +25,6 @@ async function main(status) {
 
     const device = await adapter.requestDevice();
 
-    // Canvas
-    const canvas = document.getElementById("s224222");
-
-    if (!canvas) {
-        throw new Error("Canvas not found.");
-    }
-
     const context = canvas.getContext("webgpu");
 
     if (!context) {
