@@ -128,5 +128,5 @@ if (xi > alpha) {
 }
 
 // Return opaque colour
-return vec4f(input.color, 1.0);
+return vec4f(0.0, 1.0);
 }
