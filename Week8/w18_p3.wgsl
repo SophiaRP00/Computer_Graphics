@@ -24,6 +24,7 @@ struct VertexOutput {
     @location(1) opacity: f32,
     @location(2) splatPosition: vec2f,
     @location(3) invCovariance: vec3f,
+    @location(4) @interpolate(flat) instanceIndex: u32,
 };
 
 // Fragment shader input
@@ -32,11 +33,14 @@ struct FragmentInput {
     @location(1) opacity: f32,
     @location(2) splatPosition: vec2f,
     @location(3) invCovariance: vec3f,
+    @location(4) @interpolate(flat) instanceIndex: u32,
+
 };
 
 @vertex
 fn vs_main(
     @builtin(vertex_index) vertexIndex: u32,
+    @builtin(instance_index) instanceIndex: u32,
     input: VertexInput
 ) -> VertexOutput {
 
@@ -63,13 +67,33 @@ fn vs_main(
 
     var output: VertexOutput;
 
-    output.position = vec4f(ndc, 0.0, 1.0);
+    output.position = vec4f(ndc, input.depth, 1.0);
     output.color = input.color;
     output.opacity = input.opacity;
     output.splatPosition = input.position;
     output.invCovariance = input.invCovariance;
+    output.instanceIndex = instanceIndex;
 
     return output;
+}
+
+fn randomNumber(pixel: vec2f, instanceIndex: u32) -> f32 {
+
+    let x = u32(pixel.x);
+    let y = u32(pixel.y);
+
+    var seed = x * 1973u
+             + y * 9277u
+             + instanceIndex * 26699u
+             + 0x68bc21ebu;
+
+    seed = seed ^ (seed >> 16u);
+    seed = seed * 0x7feb352du;
+    seed = seed ^ (seed >> 15u);
+    seed = seed * 0x846ca68bu;
+    seed = seed ^ (seed >> 16u);
+
+    return f32(seed) / 4294967296.0;
 }
 
 @fragment
@@ -93,7 +117,16 @@ fn fs_main(
         + yy * delta.y * delta.y;
 
     // Gaussian alpha
-    let alpha = input.opacity * exp(-0.5 * power);
+let alpha = input.opacity * exp(-0.5 * power);
 
-    return vec4f(input.color, alpha);
+// Generate random number
+let xi = randomNumber(fragCoord.xy, input.instanceIndex);
+
+// Stochastic selection
+if (xi > alpha) {
+    discard;
+}
+
+// Return opaque colour
+return vec4f(input.color, 1.0);
 }
