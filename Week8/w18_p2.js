@@ -1,19 +1,17 @@
-
-"use strict";
-
+"use strict"
 import { readPlyFile } from "./PLYParser.js";
 
 window.onload = async function() {
     const status = document.createElement("pre");
-    status.style.fontWeight = "bold";
-    status.style.padding = "10px";
-    status.style.whiteSpace = "pre-wrap";
-    status.style.overflowWrap = "anywhere";
 
     const canvas = document.getElementById("s224222");
-    
-async function main(status) {
 
+    document.body.insertBefore(status, canvas);
+
+    await main(status);
+}
+
+async function main(status) {
     // Check WebGPU
     if (!navigator.gpu) {
         throw new Error("WebGPU is not supported.");
