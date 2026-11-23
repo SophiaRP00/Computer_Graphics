@@ -1,15 +1,14 @@
 
 "use strict";
 
-// Import PLY parser
 import { readPlyFile } from "./PLYParser.js";
 
-// Start when the page has loaded
 window.onload = async function() {
-
-    const status = document.createElement("p");
+    const status = document.createElement("pre");
     status.style.fontWeight = "bold";
-    status.style.padding = "8px";
+    status.style.padding = "10px";
+    status.style.whiteSpace = "pre-wrap";
+    status.style.overflowWrap = "anywhere";
 
     const canvas = document.getElementById("s224222");
 
@@ -20,28 +19,24 @@ window.onload = async function() {
     }
 
     try {
-        status.textContent = "1. Starting WebGPU...";
+        status.textContent = "Starting WebGPU...";
 
         await main(status);
 
     } catch (error) {
-        status.textContent = "ERROR: " + error.message;
+        status.textContent = "ERROR:\n" + error.message;
     }
 };
 
 
-async function main(status)
-{
+async function main(status) {
+
     // Check WebGPU
     if (!navigator.gpu) {
-        throw new Error("WebGPU is not supported by this browser.");
+        throw new Error("WebGPU is not supported.");
     }
 
-    const gpu = navigator.gpu;
-
-    status.textContent = "2. Requesting GPU adapter...";
-
-    const adapter = await gpu.requestAdapter();
+    const adapter = await navigator.gpu.requestAdapter();
 
     if (!adapter) {
         throw new Error("No WebGPU adapter found.");
@@ -49,19 +44,23 @@ async function main(status)
 
     const device = await adapter.requestDevice();
 
-    status.textContent = "3. GPU device created.";
+    // Display uncaught GPU errors
+    device.addEventListener("uncapturederror", event => {
+        status.textContent =
+            "GPU ERROR:\n" + event.error.message;
+    });
 
     // Canvas
     const canvas = document.getElementById("s224222");
 
     if (!canvas) {
-        throw new Error("Canvas s224222 not found.");
+        throw new Error("Canvas not found.");
     }
 
     const context = canvas.getContext("webgpu");
 
     if (!context) {
-        throw new Error("Could not create WebGPU canvas context.");
+        throw new Error("Could not create WebGPU context.");
     }
 
     const canvasFormat =
@@ -72,13 +71,13 @@ async function main(status)
         format: canvasFormat
     });
 
-    // Load shader
-    status.textContent = "4. Loading shader...";
+    // Load WGSL shader
+    status.textContent = "Loading shader...";
 
     const shaderResponse = await fetch("w18_p2.wgsl");
 
     if (!shaderResponse.ok) {
-        throw new Error("Could not load shader file.");
+        throw new Error("Could not load WGSL shader.");
     }
 
     const shaderCode = await shaderResponse.text();
@@ -87,10 +86,38 @@ async function main(status)
         code: shaderCode
     });
 
-    // Load Lego PLY file
-    status.textContent = "5. Loading Lego PLY file...";
+    // Check shader compilation
+    const compilationInfo =
+        await shaderModule.getCompilationInfo();
 
-    const elements = await readPlyFile("./lego-2d-sorted.ply");
+    const shaderMessages = compilationInfo.messages;
+
+    if (shaderMessages.length > 0) {
+        status.textContent = shaderMessages.map(message =>
+            message.type.toUpperCase() +
+            " (line " + message.lineNum + "): " +
+            message.message
+        ).join("\n");
+    }
+
+    const shaderErrors = shaderMessages.filter(
+        message => message.type === "error"
+    );
+
+    if (shaderErrors.length > 0) {
+        throw new Error(
+            shaderErrors.map(message =>
+                "Line " + message.lineNum + ": " +
+                message.message
+            ).join("\n")
+        );
+    }
+
+    // Load PLY
+    status.textContent = "Loading Lego splats...";
+
+    const elements =
+        await readPlyFile("./lego-2d-sorted.ply");
 
     const gaussian_splats = elements[0];
 
@@ -100,19 +127,18 @@ async function main(status)
 
     if (gaussian_splats.stride !== 64) {
         throw new Error(
-            "Unexpected vertex stride: " +
-            gaussian_splats.stride
+            "Incorrect stride: " + gaussian_splats.stride
         );
     }
 
-    if (gaussian_splats.data.byteLength !==
-        gaussian_splats.count * 64) {
-        throw new Error(
-            "PLY data size does not match vertex count."
-        );
+    if (
+        gaussian_splats.data.byteLength !==
+        gaussian_splats.count * 64
+    ) {
+        throw new Error("PLY data size is incorrect.");
     }
 
-    // Read first splat RGB values
+    // Read first splat colour
     const firstSplat = new DataView(
         gaussian_splats.data.buffer,
         gaussian_splats.data.byteOffset,
@@ -123,17 +149,12 @@ async function main(status)
     const green = firstSplat.getFloat32(36, true);
     const blue = firstSplat.getFloat32(40, true);
 
-    // Display diagnostic values
-    status.textContent =
-        "First RGB: " +
-        red + ", " +
-        green + ", " +
-        blue;
-
-    // Vertex Buffer
+    // Create vertex buffer
     const vertexBuffer = device.createBuffer({
         size: gaussian_splats.data.byteLength,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+        usage:
+            GPUBufferUsage.VERTEX |
+            GPUBufferUsage.COPY_DST
     });
 
     device.queue.writeBuffer(
@@ -142,6 +163,7 @@ async function main(status)
         gaussian_splats.data
     );
 
+    // Vertex layout
     const vertexBufferLayout = {
         arrayStride: 64,
         stepMode: "instance",
@@ -190,10 +212,12 @@ async function main(status)
         ]
     };
 
-    // Uniform Buffer
+    // Uniform buffer
     const uniformBuffer = device.createBuffer({
         size: 8,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        usage:
+            GPUBufferUsage.UNIFORM |
+            GPUBufferUsage.COPY_DST
     });
 
     device.queue.writeBuffer(
@@ -205,7 +229,11 @@ async function main(status)
         ])
     );
 
-    // Render Pipeline
+    // Create render pipeline
+    status.textContent = "Creating render pipeline...";
+
+    device.pushErrorScope("validation");
+
     const pipeline = device.createRenderPipeline({
         layout: "auto",
 
@@ -243,6 +271,15 @@ async function main(status)
         }
     });
 
+    const pipelineError = await device.popErrorScope();
+
+    if (pipelineError) {
+        throw new Error(
+            "Pipeline error:\n" + pipelineError.message
+        );
+    }
+
+    // Bind group
     const bindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
 
@@ -254,10 +291,20 @@ async function main(status)
         }]
     });
 
-    // Rendering loop
+    // Start rendering
+    status.textContent =
+        "Shader compiled successfully.\n" +
+        "Pipeline created successfully.\n" +
+        "Splats: " + gaussian_splats.count + "\n" +
+        "First RGB: " +
+        red.toFixed(4) + ", " +
+        green.toFixed(4) + ", " +
+        blue.toFixed(4);
+
     function render() {
 
-        const commandEncoder = device.createCommandEncoder();
+        const commandEncoder =
+            device.createCommandEncoder();
 
         const textureView =
             context.getCurrentTexture().createView();
@@ -279,11 +326,11 @@ async function main(status)
                 }]
             });
 
-        // Render one Gaussian splat for testing
         renderPass.setPipeline(pipeline);
         renderPass.setBindGroup(0, bindGroup);
         renderPass.setVertexBuffer(0, vertexBuffer);
 
+        // Draw every Gaussian splat
         renderPass.draw(4, gaussian_splats.count);
 
         renderPass.end();
