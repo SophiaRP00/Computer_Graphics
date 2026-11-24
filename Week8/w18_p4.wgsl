@@ -1,13 +1,10 @@
 
 struct VertexInput {
-    @location(0) position: vec2f,
-    @location(1) halfSideLengths: vec2f,
-    @location(2) direction1: vec2f,
-    @location(3) direction2: vec2f,
-    @location(4) color: vec3f,
-    @location(5) opacity: f32,
-    @location(6) invCovariance: vec3f,
-    @location(7) depth: f32,
+    @location(0) position: vec3f,
+    @location(1) color: vec3f,
+    @location(2) opacity: f32,
+    @location(3) sigmaI: vec4f,
+    @location(4) sigmaII: vec2f,
 };
 
 struct Uniforms {
