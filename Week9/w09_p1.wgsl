@@ -59,7 +59,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     let lighting = ambient + 0.7 * diffuse;
 
     return vec4<f32>(
-        input.color.rgb * lighting * 8.0,
+        input.color.rgb * lighting,
         input.color.a
     );
 }
