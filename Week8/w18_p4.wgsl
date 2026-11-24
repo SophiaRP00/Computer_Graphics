@@ -7,12 +7,15 @@ struct VertexInput {
     @location(4) sigmaII: vec2f,
 };
 
-struct Uniforms {
+struct CameraUniforms {
+    viewMatrix: mat4x4f,
+    projectionMatrix: mat4x4f,
     resolution: vec2f,
+    padding: vec2f,
 };
 
 @group(0) @binding(0)
-var<uniform> uniforms: Uniforms;
+var<uniform> camera: CameraUniforms;
 
 // Vertex shader output
 struct VertexOutput {
@@ -41,6 +44,152 @@ fn vs_main(
     input: VertexInput
 ) -> VertexOutput {
 
+    var output: VertexOutput;
+
+    output.color = input.color;
+    output.opacity = input.opacity;
+    output.instanceIndex = instanceIndex;
+
+    // Transform the Gaussian centre into camera space.
+    let viewCenter = camera.viewMatrix * vec4f(input.position, 1.0);
+
+    // Avoid projecting Gaussians behind or too close to the camera.
+    if (viewCenter.z >= -0.1) {
+        output.position = vec4f(2.0, 2.0, 2.0, 1.0);
+        output.splatPosition = vec2f(0.0);
+        output.invCovariance = vec3f(1.0, 0.0, 1.0);
+        return output;
+    }
+
+    // Project the Gaussian centre.
+    let clipCenter = camera.projectionMatrix * viewCenter;
+    let ndc = clipCenter.xy / clipCenter.w;
+
+    let centerPixel = vec2f(
+        (ndc.x + 1.0) * 0.5 * camera.resolution.x,
+        (1.0 - ndc.y) * 0.5 * camera.resolution.y
+    );
+
+    // Reconstruct the symmetric 3D covariance matrix.
+    // xx, xy, xz, yy, yz, zz
+    let xx = input.sigmaI.x;
+    let xy = input.sigmaI.y;
+    let xz = input.sigmaI.z;
+    let yy = input.sigmaI.w;
+    let yz = input.sigmaII.x;
+    let zz = input.sigmaII.y;
+
+    let covarianceWorld = mat3x3f(
+        vec3f(xx, xy, xz),
+        vec3f(xy, yy, yz),
+        vec3f(xz, yz, zz)
+    );
+
+    // Rotate covariance from world space into camera space.
+    let viewRotation = mat3x3f(
+        camera.viewMatrix[0].xyz,
+        camera.viewMatrix[1].xyz,
+        camera.viewMatrix[2].xyz
+    );
+
+    let covarianceView =
+        viewRotation * covarianceWorld * transpose(viewRotation);
+
+    let focalX = camera.projectionMatrix[0][0];
+    let focalY = camera.projectionMatrix[1][1];
+
+    let x = viewCenter.x;
+    let y = viewCenter.y;
+    let z = viewCenter.z;
+
+    let j0 = vec2f(
+        -0.5 * camera.resolution.x * focalX / z,
+        0.0
+    );
+
+    let j1 = vec2f(
+        0.0,
+        0.5 * camera.resolution.y * focalY / z
+    );
+
+    let j2 = vec2f(
+        0.5 * camera.resolution.x * focalX * x / (z * z),
+        -0.5 * camera.resolution.y * focalY * y / (z * z)
+    );
+
+    // Project the 3D covariance into a 2D screen-space covariance.
+    let cxx = covarianceView[0][0];
+    let cxy = covarianceView[1][0];
+    let cxz = covarianceView[2][0];
+    let cyy = covarianceView[1][1];
+    let cyz = covarianceView[2][1];
+    let czz = covarianceView[2][2];
+
+    var sxx =
+        cxx * j0.x * j0.x +
+        cyy * j1.x * j1.x +
+        czz * j2.x * j2.x +
+        2.0 * cxy * j0.x * j1.x +
+        2.0 * cxz * j0.x * j2.x +
+        2.0 * cyz * j1.x * j2.x;
+
+    var sxy =
+        cxx * j0.x * j0.y +
+        cxy * (j0.x * j1.y + j1.x * j0.y) +
+        cxz * (j0.x * j2.y + j2.x * j0.y) +
+        cyy * j1.x * j1.y +
+        cyz * (j1.x * j2.y + j2.x * j1.y) +
+        czz * j2.x * j2.y;
+
+    var syy =
+        cxx * j0.y * j0.y +
+        cyy * j1.y * j1.y +
+        czz * j2.y * j2.y +
+        2.0 * cxy * j0.y * j1.y +
+        2.0 * cxz * j0.y * j2.y +
+        2.0 * cyz * j1.y * j2.y;
+
+    // Small screen-space filter to avoid degenerate ellipses.
+    sxx += 0.3;
+    syy += 0.3;
+
+    // Invert the 2D covariance matrix.
+    let determinant = sxx * syy - sxy * sxy;
+
+    if (determinant <= 0.00000001) {
+        output.position = vec4f(2.0, 2.0, 2.0, 1.0);
+        output.splatPosition = centerPixel;
+        output.invCovariance = vec3f(1.0, 0.0, 1.0);
+        return output;
+    }
+
+    output.splatPosition = centerPixel;
+
+    output.invCovariance = vec3f(
+        syy / determinant,
+        -sxy / determinant,
+        sxx / determinant
+    );
+
+    // Find the principal axes of the 2D covariance.
+    let trace = sxx + syy;
+    let discriminant = sqrt(
+        max((sxx - syy) * (sxx - syy) + 4.0 * sxy * sxy, 0.0)
+    );
+
+    let lambda1 = max(0.5 * (trace + discriminant), 0.3);
+    let lambda2 = max(0.5 * (trace - discriminant), 0.3);
+
+    let angle = 0.5 * atan2(2.0 * sxy, sxx - syy);
+
+    let direction1 = vec2f(cos(angle), sin(angle));
+    let direction2 = vec2f(-sin(angle), cos(angle));
+
+    // Draw the quad approximately three standard deviations wide.
+    let halfSide1 = 3.0 * sqrt(lambda1);
+    let halfSide2 = 3.0 * sqrt(lambda2);
+
+    // Four corners of the quad.
     var corners = array<vec2f, 4>(
         vec2f(-1.0, -1.0),
         vec2f( 1.0, -1.0),
@@ -51,29 +200,27 @@ fn vs_main(
     let corner = corners[vertexIndex];
 
     let offset =
-        corner.x * input.halfSideLengths.x * input.direction1
-        +
-        corner.y * input.halfSideLengths.y * input.direction2;
+        corner.x * halfSide1 * direction1 +
+        corner.y * halfSide2 * direction2;
 
-    let shiftedPosition = input.position + offset;
+    let pixelPosition = centerPixel + offset;
 
-    let ndc = vec2f(
-        2.0 * shiftedPosition.x / uniforms.resolution.x - 1.0,
-        1.0 - 2.0 * shiftedPosition.y / uniforms.resolution.y
+    // Convert pixel coordinates back to normalized device coordinates.
+    let quadNdc = vec2f(
+        2.0 * pixelPosition.x / camera.resolution.x - 1.0,
+        1.0 - 2.0 * pixelPosition.y / camera.resolution.y
     );
 
-    var output: VertexOutput;
-
-    output.position = vec4f(ndc, input.depth, 1.0);
-    output.color = input.color;
-    output.opacity = input.opacity;
-    output.splatPosition = input.position;
-    output.invCovariance = input.invCovariance;
-    output.instanceIndex = instanceIndex;
+    output.position = vec4f(
+        quadNdc,
+        clipCenter.z / clipCenter.w,
+        1.0
+    );
 
     return output;
 }
 
+// Random number generator for stochastic transparency.
 fn randomNumber(pixel: vec2f, instanceIndex: u32) -> f32 {
 
     let x = u32(pixel.x);
@@ -114,16 +261,16 @@ fn fs_main(
         + yy * delta.y * delta.y;
 
     // Gaussian alpha
-let alpha = input.opacity * exp(-0.5 * power);
+    let alpha = input.opacity * exp(-0.5 * power);
 
-// Generate random number
-let xi = randomNumber(fragCoord.xy, input.instanceIndex);
-
-// Stochastic selection
-if (xi > alpha) {
-    discard;
-}
-
-// Return opaque colour
-return vec4f(input.color, 1.0);
-}
+    // Generate random number for Stochastic
+    let xi = randomNumber(fragCoord.xy, input.instanceIndex);
+    
+    // Stochastic selection
+    if (xi > alpha) {
+        discard;
+    }
+    
+    // Return opaque colour
+    return vec4f(input.color, 1.0);
+    }
