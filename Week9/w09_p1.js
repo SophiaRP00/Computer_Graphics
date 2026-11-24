@@ -1,5 +1,6 @@
+
 async function main() {
-    
+
     // Initialise WebGPU
     if (!navigator.gpu) {
         console.error("WebGPU is not supported!");
@@ -26,7 +27,7 @@ async function main() {
 
     console.log("WebGPU initialized!");
 
-    // Load Shader
+    // Load shader
     const shaderResponse = await fetch("w09_p1.wgsl");
 
     if (!shaderResponse.ok) {
@@ -34,11 +35,12 @@ async function main() {
     }
 
     const shaderCode = await shaderResponse.text();
+
     const shaderModule = device.createShaderModule({
         code: shaderCode
     });
 
-    //  Load F1 OBJ file
+    // Load Utah teapot OBJ file
     const drawingInfo = await readOBJFile(
         "utah_teapot.obj",
         1.0,
@@ -75,8 +77,7 @@ async function main() {
 
     console.log("Number of indices:", indices.length);
 
-    //  Normalise model coordinates
-
+    // Normalise model coordinates
     const normalizedVertices = new Float32Array(vertices);
 
     let min = [Infinity, Infinity, Infinity];
@@ -104,11 +105,12 @@ async function main() {
         return;
     }
 
-    const scale = 1.8 / size;
+    const normalizationScale = 1.8 / size;
+
     for (let i = 0; i < vertices.length; i += 4) {
         for (let j = 0; j < 3; j++) {
             normalizedVertices[i + j] =
-                (vertices[i + j] - center[j]) * scale;
+                (vertices[i + j] - center[j]) * normalizationScale;
         }
     }
 
@@ -131,6 +133,7 @@ async function main() {
         );
 
         buffer.unmap();
+
         return buffer;
     }
 
@@ -155,28 +158,30 @@ async function main() {
     );
 
     console.log("GPU buffers created!");
-    
-        // Model matrix
+
+    // Model matrix: scale to one quarter
     const scaleMatrix = new Float32Array([
         0.25, 0,    0,    0,
         0,    0.25, 0,    0,
         0,    0,    0.25, 0,
         0,    0,    0,    1
     ]);
-    
+
+    // Model matrix: translate by (0, -1, -3)
     const translationMatrix = new Float32Array([
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
+        1, 0,  0,  0,
+        0, 1,  0,  0,
+        0, 0,  1,  0,
         0, -1, -3, 1
     ]);
-    
+
+    // Combine translation and scaling
     const modelMatrix = multiplyMatrices(
         translationMatrix,
         scaleMatrix
     );
 
-    // Camera View
+    // Camera view
     const eye = [2, -3, 1.5];
     const target = [0, -1, -3];
 
@@ -186,6 +191,7 @@ async function main() {
         [0, 1, 0]
     );
 
+    // Projection matrix
     const projectionMatrix = perspective(
         Math.PI / 4,
         canvas.width / canvas.height,
@@ -193,12 +199,13 @@ async function main() {
         100
     );
 
+    // Combine projection and view matrices
     const viewProjectionMatrix = multiplyMatrices(
         projectionMatrix,
         viewMatrix
     );
 
-    // Camera buffer:
+    // Camera buffer: two 4x4 matrices = 128 bytes
     const cameraBuffer = device.createBuffer({
         size: 128,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -208,21 +215,19 @@ async function main() {
     const pipeline = device.createRenderPipeline({
 
         layout: "auto",
-        vertex: {
 
+        vertex: {
             module: shaderModule,
             entryPoint: "vertexMain",
-            buffers: [
 
+            buffers: [
                 {
                     arrayStride: 16,
-
                     attributes: [{
                         shaderLocation: 0,
                         offset: 0,
                         format: "float32x4"
-                    }
-                    ]
+                    }]
                 },
 
                 {
@@ -231,8 +236,7 @@ async function main() {
                         shaderLocation: 1,
                         offset: 0,
                         format: "float32x4"
-                        }
-                    ]
+                    }]
                 },
 
                 {
@@ -241,8 +245,7 @@ async function main() {
                         shaderLocation: 2,
                         offset: 0,
                         format: "float32x4"
-                        }
-                    ]
+                    }]
                 }
             ]
         },
@@ -250,11 +253,10 @@ async function main() {
         fragment: {
             module: shaderModule,
             entryPoint: "fragmentMain",
-            targets: [
-                {
-                    format: canvasFormat
-                }
-            ]
+
+            targets: [{
+                format: canvasFormat
+            }]
         },
 
         primitive: {
@@ -272,15 +274,13 @@ async function main() {
     // Create bind group
     const bindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
-        entries: [
-            {
-                binding: 0,
-                resource: {
-                    buffer: cameraBuffer
-                }
-            }
-        ]
 
+        entries: [{
+            binding: 0,
+            resource: {
+                buffer: cameraBuffer
+            }
+        }]
     });
 
     // Create depth texture
@@ -293,18 +293,29 @@ async function main() {
         usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
 
-    let rotation = 0;
+    // Update camera and model matrices in uniform buffer
+    const cameraData = new Float32Array(32);
 
-    //  Render function
+    cameraData.set(viewProjectionMatrix, 0);
+    cameraData.set(modelMatrix, 16);
+
+    device.queue.writeBuffer(
+        cameraBuffer,
+        0,
+        cameraData
+    );
+
+    // Render function
     function render() {
 
         const commandEncoder = device.createCommandEncoder();
+
         const renderPass = commandEncoder.beginRenderPass({
 
             colorAttachments: [
-
                 {
                     view: context.getCurrentTexture().createView(),
+
                     clearValue: {
                         r: 0.65,
                         g: 0.83,
@@ -318,8 +329,8 @@ async function main() {
             ],
 
             depthStencilAttachment: {
-
                 view: depthTexture.createView(),
+
                 depthClearValue: 1.0,
                 depthLoadOp: "clear",
                 depthStoreOp: "store"
@@ -328,12 +339,15 @@ async function main() {
 
         renderPass.setPipeline(pipeline);
         renderPass.setBindGroup(0, bindGroup);
+
         renderPass.setVertexBuffer(0, vertexBuffer);
         renderPass.setVertexBuffer(1, normalBuffer);
         renderPass.setVertexBuffer(2, colorBuffer);
+
         renderPass.setIndexBuffer(indexBuffer, "uint32");
 
         renderPass.drawIndexed(indices.length);
+
         renderPass.end();
 
         device.queue.submit([
@@ -341,113 +355,109 @@ async function main() {
         ]);
     }
 
-        // Update camera matrix and rotation uniform.
-        const cameraData = new Float32Array(32);
-        cameraData.set(viewProjectionMatrix, 0);
-        cameraData.set(modelMatrix, 16);
+    // Render the teapot
+    render();
 
-        device.queue.writeBuffer(
-            cameraBuffer,
-            0,
-            cameraData
-        );
-
-        render();
-        requestAnimationFrame(animate);
-    }
-
-    animate();
     console.log("3D model rendered successfully!");
 }
 
+
+// Camera helper functions
+
+function normalize(v) {
+    const length = Math.hypot(v[0], v[1], v[2]);
+
+    return [
+        v[0] / length,
+        v[1] / length,
+        v[2] / length
+    ];
+}
+
+
+function cross(a, b) {
+    return [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0]
+    ];
+}
+
+
+function dot(a, b) {
+    return (
+        a[0] * b[0] +
+        a[1] * b[1] +
+        a[2] * b[2]
+    );
+}
+
+
+// Camera view matrix
+function lookAt(eye, target, up) {
+
+    const zAxis = normalize([
+        eye[0] - target[0],
+        eye[1] - target[1],
+        eye[2] - target[2]
+    ]);
+
+    const xAxis = normalize(cross(up, zAxis));
+
+    const yAxis = cross(zAxis, xAxis);
+
+    return new Float32Array([
+
+        xAxis[0], yAxis[0], zAxis[0], 0,
+        xAxis[1], yAxis[1], zAxis[1], 0,
+        xAxis[2], yAxis[2], zAxis[2], 0,
+
+        -dot(xAxis, eye),
+        -dot(yAxis, eye),
+        -dot(zAxis, eye),
+        1
+    ]);
+}
+
+
+// Perspective projection matrix
+function perspective(fov, aspect, near, far) {
+
+    const f = 1 / Math.tan(fov / 2);
+
+    return new Float32Array([
+
+        f / aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, far / (near - far), -1,
+        0, 0, (near * far) / (near - far), 0
+
+    ]);
+}
+
+
+// Matrix multiplication
+function multiplyMatrices(a, b) {
+
+    const result = new Float32Array(16);
+
+    for (let column = 0; column < 4; column++) {
+
+        for (let row = 0; row < 4; row++) {
+
+            result[column * 4 + row] =
+                a[row] * b[column * 4] +
+                a[4 + row] * b[column * 4 + 1] +
+                a[8 + row] * b[column * 4 + 2] +
+                a[12 + row] * b[column * 4 + 3];
+        }
+    }
+
+    return result;
+}
+
+
+// Start the application
 main().catch(error => {
     console.error("Application error:", error);
-
 });
-
-// Camera functions
-    function normalize(v) {
-        const length = Math.hypot(v[0], v[1], v[2]);
-
-        return [
-            v[0] / length,
-            v[1] / length,
-            v[2] / length
-        ];
-    }
-
-    function cross(a, b) {
-
-        return [
-            a[1] * b[2] - a[2] * b[1],
-            a[2] * b[0] - a[0] * b[2],
-            a[0] * b[1] - a[1] * b[0]
-        ];
-    }
-
-    function dot(a, b) {
-
-        return (
-            a[0] * b[0] +
-            a[1] * b[1] +
-            a[2] * b[2]
-        );
-    }
-    
-
-    function animate() {
-        rotation += 0.01;
-        
-    function lookAt(eye, target, up) {
-        const zAxis = normalize([
-            eye[0] - target[0],
-            eye[1] - target[1],
-            eye[2] - target[2]
-        ]);
-
-        const xAxis = normalize(cross(up, zAxis));
-
-        const yAxis = cross(zAxis, xAxis);
-
-        return new Float32Array([
-
-            xAxis[0], yAxis[0], zAxis[0], 0,
-            xAxis[1], yAxis[1], zAxis[1], 0,
-            xAxis[2], yAxis[2], zAxis[2], 0,
-
-            -dot(xAxis, eye),
-            -dot(yAxis, eye),
-            -dot(zAxis, eye),
-            1
-
-        ]);
-    }
-
- function perspective(fov, aspect, near, far) {
-        const f = 1 / Math.tan(fov / 2);
-
-        return new Float32Array([
-
-            f / aspect, 0, 0, 0,
-            0, f, 0, 0,
-            0, 0, far / (near - far), -1,
-            0, 0, (near * far) / (near - far), 0
-
-        ]);
-    }
-
-   function multiplyMatrices(a, b) {
-        const result = new Float32Array(16);
-        for (let column = 0; column < 4; column++) {
-
-            for (let row = 0; row < 4; row++) {
-
-                result[column * 4 + row] =
-                    a[row] * b[column * 4] +
-                    a[4 + row] * b[column * 4 + 1] +
-                    a[8 + row] * b[column * 4 + 2] +
-                    a[12 + row] * b[column * 4 + 3];
-            }
-        }
-        return result;
-    }
