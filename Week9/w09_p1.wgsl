@@ -1,7 +1,7 @@
 
 struct Camera {
     viewProjection: mat4x4<f32>,
-    rotation: f32
+    modelMatrix: mat4x4<f32>
 };
 
 @group(0) @binding(0)
@@ -26,17 +26,10 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
 
     var output: VertexOutput;
 
-    let c = cos(camera.rotation);
-    let s = sin(camera.rotation);
-
-    let rotatedPosition = vec4<f32>(
-        c * input.position.x + s * input.position.z,
-        input.position.y,
-        -s * input.position.x + c * input.position.z,
-        1.0
-    );
-
-    output.position = camera.viewProjection * rotatedPosition;
+    output.position =
+    camera.viewProjection *
+    camera.modelMatrix *
+    input.position;
 
     // Display normals as RGB colors.
     output.normal = normalize(input.normal.xyz);
