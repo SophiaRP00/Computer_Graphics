@@ -341,7 +341,31 @@ async function main() {
         ]);
     }
 
-     // Camera functions
+        // Update camera matrix and rotation uniform.
+        const cameraData = new Float32Array(32);
+        cameraData.set(viewProjectionMatrix, 0);
+        cameraData.set(modelMatrix, 16);
+
+        device.queue.writeBuffer(
+            cameraBuffer,
+            0,
+            cameraData
+        );
+
+        render();
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+    console.log("3D model rendered successfully!");
+}
+
+main().catch(error => {
+    console.error("Application error:", error);
+
+});
+
+// Camera functions
     function normalize(v) {
         const length = Math.hypot(v[0], v[1], v[2]);
 
@@ -373,32 +397,7 @@ async function main() {
 
     function animate() {
         rotation += 0.01;
-
-        // Update camera matrix and rotation uniform.
-        const cameraData = new Float32Array(32);
-        cameraData.set(viewProjectionMatrix, 0);
-        cameraData.set(modelMatrix, 16);
-
-        device.queue.writeBuffer(
-            cameraBuffer,
-            0,
-            cameraData
-        );
-
-        render();
-        requestAnimationFrame(animate);
-    }
-
-    animate();
-    console.log("3D model rendered successfully!");
-}
-
-main().catch(error => {
-    console.error("Application error:", error);
-
-});
-
-
+        
     function lookAt(eye, target, up) {
         const zAxis = normalize([
             eye[0] - target[0],
