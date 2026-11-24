@@ -1,8 +1,6 @@
-
 async function main() {
-
+    
     // Initialise WebGPU
-
     if (!navigator.gpu) {
         console.error("WebGPU is not supported!");
         return;
@@ -36,7 +34,6 @@ async function main() {
     }
 
     const shaderCode = await shaderResponse.text();
-
     const shaderModule = device.createShaderModule({
         code: shaderCode
     });
@@ -59,7 +56,6 @@ async function main() {
     const indices = drawingInfo.indices;
 
     console.log("OBJ file loaded successfully!");
-
     console.log("Material color sample:",
         Array.from(colors.slice(0, 20))
     );
@@ -87,7 +83,6 @@ async function main() {
     let max = [-Infinity, -Infinity, -Infinity];
 
     for (let i = 0; i < vertices.length; i += 4) {
-
         for (let j = 0; j < 3; j++) {
             min[j] = Math.min(min[j], vertices[i + j]);
             max[j] = Math.max(max[j], vertices[i + j]);
@@ -110,9 +105,7 @@ async function main() {
     }
 
     const scale = 1.8 / size;
-
     for (let i = 0; i < vertices.length; i += 4) {
-
         for (let j = 0; j < 3; j++) {
             normalizedVertices[i + j] =
                 (vertices[i + j] - center[j]) * scale;
@@ -120,9 +113,7 @@ async function main() {
     }
 
     // Create GPU buffers
-
     function createGPUBuffer(data, usage) {
-
         const buffer = device.createBuffer({
             size: data.byteLength,
             usage: usage,
@@ -140,7 +131,6 @@ async function main() {
         );
 
         buffer.unmap();
-
         return buffer;
     }
 
@@ -169,7 +159,6 @@ async function main() {
   
     // Camera functions
     function normalize(v) {
-
         const length = Math.hypot(v[0], v[1], v[2]);
 
         return [
@@ -198,7 +187,6 @@ async function main() {
     }
 
     function lookAt(eye, target, up) {
-
         const zAxis = normalize([
             eye[0] - target[0],
             eye[1] - target[1],
@@ -224,7 +212,6 @@ async function main() {
     }
 
     function perspective(fov, aspect, near, far) {
-
         const f = 1 / Math.tan(fov / 2);
 
         return new Float32Array([
@@ -238,9 +225,7 @@ async function main() {
     }
 
     function multiplyMatrices(a, b) {
-
         const result = new Float32Array(16);
-
         for (let column = 0; column < 4; column++) {
 
             for (let row = 0; row < 4; row++) {
@@ -253,13 +238,11 @@ async function main() {
 
             }
         }
-
         return result;
     }
 
     // Camera View
-
-    const eye = [0, 0, 3.5];
+    const eye = [4, 3, 6];
     const target = [0, 0, 0];
 
     const viewMatrix = lookAt(
@@ -282,59 +265,47 @@ async function main() {
 
     // Camera buffer:
     const cameraBuffer = device.createBuffer({
-
         size: 80,
-
-        usage:
-            GPUBufferUsage.UNIFORM |
-            GPUBufferUsage.COPY_DST
-
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
     // Create render pipeline
-
     const pipeline = device.createRenderPipeline({
 
         layout: "auto",
-
         vertex: {
 
             module: shaderModule,
-
             entryPoint: "vertexMain",
-
             buffers: [
 
                 {
                     arrayStride: 16,
 
-                    attributes: [
-                        {
-                            shaderLocation: 0,
-                            offset: 0,
-                            format: "float32x4"
+                    attributes: [{
+                        shaderLocation: 0,
+                        offset: 0,
+                        format: "float32x4"
+                    }
+                    ]
+                },
+
+                {
+                    arrayStride: 16,
+                    attributes: [{
+                        shaderLocation: 1,
+                        offset: 0,
+                        format: "float32x4"
                         }
                     ]
                 },
 
                 {
                     arrayStride: 16,
-                    attributes: [
-                        {
-                            shaderLocation: 1,
-                            offset: 0,
-                            format: "float32x4"
-                        }
-                    ]
-                },
-
-                {
-                    arrayStride: 16,
-                    attributes: [
-                        {
-                            shaderLocation: 2,
-                            offset: 0,
-                            format: "float32x4"
+                    attributes: [{
+                        shaderLocation: 2,
+                        offset: 0,
+                        format: "float32x4"
                         }
                     ]
                 }
@@ -352,13 +323,11 @@ async function main() {
         },
 
         primitive: {
-
             topology: "triangle-list",
             cullMode: "none"
         },
 
         depthStencil: {
-
             depthWriteEnabled: true,
             depthCompare: "less",
             format: "depth24plus"
@@ -366,7 +335,6 @@ async function main() {
     });
 
     // Create bind group
-    
     const bindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
         entries: [
@@ -381,16 +349,13 @@ async function main() {
     });
 
     // Create depth texture
-   
     const depthTexture = device.createTexture({
 
         size: [
             canvas.width,
             canvas.height
         ],
-
         format: "depth24plus",
-
         usage: GPUTextureUsage.RENDER_ATTACHMENT
 
     });
@@ -409,9 +374,9 @@ async function main() {
                 {
                     view: context.getCurrentTexture().createView(),
                     clearValue: {
-                        r: 0.7,
-                        g: 0.8,
-                        b: 1.0,
+                        r: 0.65,
+                        g: 0.83,
+                        b: 0.95,
                         a: 1.0
                     },
 
@@ -434,10 +399,7 @@ async function main() {
         renderPass.setVertexBuffer(0, vertexBuffer);
         renderPass.setVertexBuffer(1, normalBuffer);
         renderPass.setVertexBuffer(2, colorBuffer);
-        renderPass.setIndexBuffer(
-            indexBuffer,
-            "uint32"
-        );
+        renderPass.setIndexBuffer(indexBuffer, "uint32");
 
         renderPass.drawIndexed(indices.length);
         renderPass.end();
@@ -448,11 +410,9 @@ async function main() {
     }
 
     function animate() {
-
         rotation += 0.01;
 
         // Update camera matrix and rotation uniform.
-
         const cameraData = new Float32Array(20);
         cameraData.set(viewProjectionMatrix, 0);
         cameraData[16] = rotation;
@@ -472,8 +432,6 @@ async function main() {
 }
 
 main().catch(error => {
-
     console.error("Application error:", error);
 
 });
-
