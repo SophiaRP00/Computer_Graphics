@@ -160,13 +160,24 @@ async function main() {
     console.log("GPU buffers created!");
 
     // Model matrix: scale to one quarter
+    const s0 = 0.5;
     const scaleMatrix = new Float32Array([
-        0.25, 0,    0,    0,
-        0,    0.25, 0,    0,
-        0,    0,    0.25, 0,
+        s0, 0,    0,    0,
+        0,    s0, 0,    0,
+        0,    0,    s0, 0,
         0,    0,    0,    1
     ]);
 
+    const a = -Math.PI / 2;
+    const c = Math.cos(a), s = Math.sin(a);
+    const rotationMatrix = new Float32Array([
+        1, 0, 0, 0,
+        0, c, s, 0,
+        0, -s, c, 0,
+        0, 0, 0, 1
+    ]);
+
+    
     // Model matrix: translate by (0, -1, -3)
     const translationMatrix = new Float32Array([
         1, 0,  0,  0,
@@ -178,7 +189,7 @@ async function main() {
     // Combine translation and scaling
     const modelMatrix = multiplyMatrices(
         translationMatrix,
-        scaleMatrix
+        multiplyMatrices(rotationMatrix, scaleMatrix)
     );
 
     // Camera view
