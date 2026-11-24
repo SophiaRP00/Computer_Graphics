@@ -9,7 +9,6 @@ async function main() {
     }
 
     const canvas = document.getElementById("webgpu");
-
     const adapter = await navigator.gpu.requestAdapter();
 
     if (!adapter) {
@@ -18,9 +17,7 @@ async function main() {
     }
 
     const device = await adapter.requestDevice();
-
     const context = canvas.getContext("webgpu");
-
     const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
 
     context.configure({
@@ -322,7 +319,6 @@ async function main() {
 
                 {
                     arrayStride: 16,
-
                     attributes: [
                         {
                             shaderLocation: 1,
@@ -334,7 +330,6 @@ async function main() {
 
                 {
                     arrayStride: 16,
-
                     attributes: [
                         {
                             shaderLocation: 2,
@@ -343,16 +338,12 @@ async function main() {
                         }
                     ]
                 }
-
             ]
         },
 
         fragment: {
-
             module: shaderModule,
-
             entryPoint: "fragmentMain",
-
             targets: [
                 {
                     format: canvasFormat
@@ -363,33 +354,24 @@ async function main() {
         primitive: {
 
             topology: "triangle-list",
-
             cullMode: "none"
-
         },
 
         depthStencil: {
 
             depthWriteEnabled: true,
-
             depthCompare: "less",
-
             format: "depth24plus"
-
         }
-
     });
 
     // Create bind group
     
     const bindGroup = device.createBindGroup({
-
         layout: pipeline.getBindGroupLayout(0),
-
         entries: [
             {
                 binding: 0,
-
                 resource: {
                     buffer: cameraBuffer
                 }
@@ -426,52 +408,38 @@ async function main() {
 
                 {
                     view: context.getCurrentTexture().createView(),
-
                     clearValue: {
-                        r: 1.0,
-                        g: 1.0,
+                        r: 0.7,
+                        g: 0.8,
                         b: 1.0,
                         a: 1.0
                     },
 
                     loadOp: "clear",
-
                     storeOp: "store"
                 }
-
             ],
 
             depthStencilAttachment: {
 
                 view: depthTexture.createView(),
-
                 depthClearValue: 1.0,
-
                 depthLoadOp: "clear",
-
                 depthStoreOp: "store"
-
             }
-
         });
 
         renderPass.setPipeline(pipeline);
-
         renderPass.setBindGroup(0, bindGroup);
-
         renderPass.setVertexBuffer(0, vertexBuffer);
-
         renderPass.setVertexBuffer(1, normalBuffer);
-
         renderPass.setVertexBuffer(2, colorBuffer);
-
         renderPass.setIndexBuffer(
             indexBuffer,
             "uint32"
         );
 
         renderPass.drawIndexed(indices.length);
-
         renderPass.end();
 
         device.queue.submit([
@@ -486,9 +454,7 @@ async function main() {
         // Update camera matrix and rotation uniform.
 
         const cameraData = new Float32Array(20);
-
         cameraData.set(viewProjectionMatrix, 0);
-
         cameraData[16] = rotation;
 
         device.queue.writeBuffer(
@@ -498,14 +464,11 @@ async function main() {
         );
 
         render();
-
         requestAnimationFrame(animate);
     }
 
     animate();
-
     console.log("3D model rendered successfully!");
-
 }
 
 main().catch(error => {
