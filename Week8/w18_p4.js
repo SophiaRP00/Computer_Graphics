@@ -93,45 +93,35 @@ async function main(status) {
 
         attributes: [
             {
-                format: "float32x2",
+                // Position
+                format: "float32x3",
                 offset: 0,
                 shaderLocation: 0
             },
             {
-                format: "float32x2",
-                offset: 8,
+                // Colour
+                format: "float32x3",
+                offset: 16,
                 shaderLocation: 1
             },
             {
-                format: "float32x2",
-                offset: 16,
+                // Opacity
+                format: "float32",
+                offset: 28,
                 shaderLocation: 2
             },
             {
-                format: "float32x2",
-                offset: 24,
+                // Sigma I
+                format: "float32x4",
+                offset: 32,
                 shaderLocation: 3
             },
             {
-                format: "float32x3",
-                offset: 32,
+                // Sigma II
+                format: "float32x2",
+                offset: 48,
                 shaderLocation: 4
             },
-            {
-                format: "float32",
-                offset: 44,
-                shaderLocation: 5
-            },
-            {
-                format: "float32x3",
-                offset: 48,
-                shaderLocation: 6
-            },
-            {
-                format: "float32",
-                offset: 60,
-                shaderLocation: 7
-            }
         ]
     };
 
