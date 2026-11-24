@@ -235,14 +235,13 @@ async function main() {
                     a[4 + row] * b[column * 4 + 1] +
                     a[8 + row] * b[column * 4 + 2] +
                     a[12 + row] * b[column * 4 + 3];
-
             }
         }
         return result;
     }
 
     // Camera View
-    const eye = [4, 3, 6];
+    const eye = [2, -3, 1.5];
     const target = [0, 0, 0];
 
     const viewMatrix = lookAt(
