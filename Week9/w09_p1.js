@@ -1,4 +1,3 @@
-
 async function main() {
 
     // Initialise WebGPU
@@ -35,10 +34,74 @@ async function main() {
     }
 
     const shaderCode = await shaderResponse.text();
-
     const shaderModule = device.createShaderModule({
         code: shaderCode
     });
+
+    // Load Image
+    const imageResponse = await fetch("xamp23.png")
+    const imageBlob = await imageResponse.blob();
+    const marbleBitmap = await createImageBitmap(imageBlob);
+    
+    // Create GPU texture
+    const marbleTexture = device.createTexture({
+        size: [marbleBitmap.width, marbleBitmap.height],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    });
+    
+    // Copy image into GPU texture
+    device.queue.copyExternalImageToTexture(
+        { source: marbleBitmap },
+        { texture: marbleTexture },
+        [marbleBitmap.width, marbleBitmap.height]
+    );
+    
+    // Create texture sampler
+    const marbleSampler = device.createSampler({
+        addressModeU: "clamp-to-edge",
+        addressModeV: "clamp-to-edge",
+        magFilter: "linear",
+        minFilter: "linear"
+    });
+    
+        // Ground quad vertices: x, y, z
+    const groundVertices = new Float32Array([
+        -2, -1, -1,
+         2, -1, -1,
+         2, -1, -5,
+        -2, -1, -5
+    ]);
+    
+    // Texture coordinates: u, v
+    const groundTexCoords = new Float32Array([
+        0, 0,
+        1, 0,
+        1, 1,
+        0, 1
+    ]);
+    
+    // Two triangles forming the quad
+    const groundIndices = new Uint16Array([
+        0, 1, 2,
+        0, 2, 3
+    ]);
+    
+    // Create ground buffers
+    const groundVertexBuffer = createGPUBuffer(
+        groundVertices,
+        GPUBufferUsage.VERTEX
+    );
+    
+    const groundTexCoordBuffer = createGPUBuffer(
+        groundTexCoords,
+        GPUBufferUsage.VERTEX
+    );
+    
+    const groundIndexBuffer = createGPUBuffer(
+        groundIndices,
+        GPUBufferUsage.INDEX
+    );
 
     // Load Utah teapot OBJ file
     const drawingInfo = await readOBJFile(
@@ -160,7 +223,7 @@ async function main() {
     console.log("GPU buffers created!");
 
     // Model matrix: scale to one quarter
-    const s0 = 0.5;
+    const s0 = 0.25;
     const scaleMatrix = new Float32Array([
         s0, 0,    0,    0,
         0,    s0, 0,    0,
@@ -282,6 +345,52 @@ async function main() {
         }
     });
 
+    const groundPipeline = device.createRenderPipeline({
+    layout: "auto",
+
+    vertex: {
+        module: shaderModule,
+        entryPoint: "groundVertexMain",
+        buffers: [
+            {
+                arrayStride: 12,
+                attributes: [{
+                    shaderLocation: 0,
+                    offset: 0,
+                    format: "float32x3"
+                }]
+            },
+            {
+                arrayStride: 8,
+                attributes: [{
+                    shaderLocation: 1,
+                    offset: 0,
+                    format: "float32x2"
+                }]
+            }
+        ]
+    },
+
+    fragment: {
+        module: shaderModule,
+        entryPoint: "groundFragmentMain",
+        targets: [{
+            format: canvasFormat
+        }]
+    },
+
+    primitive: {
+        topology: "triangle-list",
+        cullMode: "none"
+    },
+
+    depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: "less",
+        format: "depth24plus"
+    }
+});
+
     // Create bind group
     const bindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
@@ -303,6 +412,25 @@ async function main() {
         format: "depth24plus",
         usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
+
+    const groundBindGroup = device.createBindGroup({
+    layout: groundPipeline.getBindGroupLayout(0),
+
+    entries: [
+        {
+            binding: 0,
+            resource: { buffer: cameraBuffer }
+        },
+        {
+            binding: 1,
+            resource: marbleTexture.createView()
+        },
+        {
+            binding: 2,
+            resource: marbleSampler
+        }
+    ]
+});
 
     // Update camera and model matrices in uniform buffer
     const cameraData = new Float32Array(32);
@@ -348,6 +476,17 @@ async function main() {
             }
         });
 
+        // Draw ground 
+        renderPass.setPipeline(groundPipeline);
+        renderPass.setBindGroup(0, groundBindGroup);
+        
+        renderPass.setVertexBuffer(0, groundVertexBuffer);
+        renderPass.setVertexBuffer(1, groundTexCoordBuffer);
+        renderPass.setIndexBuffer(groundIndexBuffer, "uint16");
+        
+        renderPass.drawIndexed(6);
+
+        // Draw Teapot
         renderPass.setPipeline(pipeline);
         renderPass.setBindGroup(0, bindGroup);
 
@@ -466,7 +605,6 @@ function multiplyMatrices(a, b) {
 
     return result;
 }
-
 
 // Start the application
 main().catch(error => {
