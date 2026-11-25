@@ -255,7 +255,7 @@ async function main() {
 
     // Camera view
     const eye = [0, -0.5, 0];
-    const target = [0, -1, -3];
+    const target = [0, -0.5, -3];
 
     const viewMatrix = lookAt(
         eye,
