@@ -38,6 +38,9 @@ async function main() {
         code: shaderCode
     });
 
+    // Button Code 
+    const bounceButton = document.getElementById("bouncer");
+
     // Load Image
     const imageResponse = await fetch("xamp23.png")
     const imageBlob = await imageResponse.blob();
@@ -458,7 +461,6 @@ async function main() {
     function render() {
 
         const commandEncoder = device.createCommandEncoder();
-
         const renderPass = commandEncoder.beginRenderPass({
 
             colorAttachments: [
@@ -574,12 +576,28 @@ async function main() {
     }
     
     // Start bouncing
-    animationEnabled = true;
-    animationFrameId = requestAnimationFrame(animate);
+    // Render the scene when the page loads
+render();
+
+// Button controls
+    bounceButton.addEventListener("click", () => {
     
-    console.log("Teapot animation started!");
-    }
+        animationEnabled = !animationEnabled;
     
+        if (animationEnabled) {
+    
+            previousTime = 0;
+            animationFrameId = requestAnimationFrame(animate);
+    
+            bounceButton.textContent = "Stop Bouncing";
+    
+        } else {
+    
+            cancelAnimationFrame(animationFrameId);
+    
+            bounceButton.textContent = "Bounce";
+        }
+    });
 
 // Camera helper functions
 
