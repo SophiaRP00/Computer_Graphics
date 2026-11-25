@@ -283,6 +283,18 @@ async function main() {
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
+    // Animation variables
+    let animationEnabled = false;
+    let animationFrameId = null;
+    
+    let currentY = -1;
+    let direction = 1;
+    
+    const minY = -1;
+    const maxY = 0.5;
+    const speed = 0.8; // Movement speed
+    let previousTime = 0;
+
     // Create render pipeline
     const pipeline = device.createRenderPipeline({
 
@@ -504,11 +516,70 @@ async function main() {
     }
 
     // Render the teapot
-    render();
-
-    console.log("3D model rendered successfully!");
-}
-
+    // Animation function
+    function animate(timestamp) {
+    
+        if (previousTime === 0) {
+            previousTime = timestamp;
+        }
+    
+        const deltaTime = (timestamp - previousTime) / 1000;
+        previousTime = timestamp;
+    
+        // Update vertical position
+        currentY += direction * speed * deltaTime;
+    
+        // Reverse direction at the limits
+        if (currentY >= maxY) {
+            currentY = maxY;
+            direction = -1;
+        }
+    
+        if (currentY <= minY) {
+            currentY = minY;
+            direction = 1;
+        }
+    
+        // Create updated translation matrix
+        const translationMatrix = new Float32Array([
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, currentY + halfHeight, -3, 1
+        ]);
+    
+        // Update model matrix
+        const modelMatrix = multiplyMatrices(
+            translationMatrix,
+            multiplyMatrices(rotationMatrix, scaleMatrix)
+        );
+    
+        // Update camera buffer
+        const cameraData = new Float32Array(32);
+    
+        cameraData.set(viewProjectionMatrix, 0);
+        cameraData.set(modelMatrix, 16);
+    
+        device.queue.writeBuffer(
+            cameraBuffer,
+            0,
+            cameraData
+        );
+    
+        // Render the scene
+        render();
+    
+        // Continue animation
+        animationFrameId = requestAnimationFrame(animate);
+    }
+    
+    // Start bouncing
+    animationEnabled = true;
+    animationFrameId = requestAnimationFrame(animate);
+    
+    console.log("Teapot animation started!");
+    }
+    
 
 // Camera helper functions
 
