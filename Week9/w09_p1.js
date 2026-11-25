@@ -221,7 +221,7 @@ async function main() {
     console.log("GPU buffers created!");
 
     // Model matrix: scale to one quarter
-    const s0 = 0.25;
+    const s0 = 0.5;
     const scaleMatrix = new Float32Array([
         s0, 0,    0,    0,
         0,    s0, 0,    0,
