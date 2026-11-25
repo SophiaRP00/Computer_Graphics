@@ -598,7 +598,7 @@ render();
             bounceButton.textContent = "Bounce";
         }
     });
-
+}
 // Camera helper functions
 
 function normalize(v) {
