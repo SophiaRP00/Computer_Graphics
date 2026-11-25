@@ -26,11 +26,12 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
 
     var output: VertexOutput;
     let worldPosition = camera.modelMatrix * input.position;
-    output.position = camera.viewProjection * camera.modelMatrix;
+    output.position = camera.viewProjection * worldPosition;
 
     // Display normals as RGB colors.
     output.normal = normalize((camera.modelMatrix * vec4<f32>(input.normal.xyz, 0.0)).xyz);
     output.color = input.color;
+    output.worldPosition = worldPosition.xyz;
 
     return output;
 }
