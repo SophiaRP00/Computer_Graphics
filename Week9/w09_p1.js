@@ -169,7 +169,6 @@ async function main() {
     }
 
     const normalizationScale = 1.8 / size;
-
     for (let i = 0; i < vertices.length; i += 4) {
         for (let j = 0; j < 3; j++) {
             normalizedVertices[i + j] =
@@ -196,7 +195,6 @@ async function main() {
         );
 
         buffer.unmap();
-
         return buffer;
     }
 
@@ -242,11 +240,12 @@ async function main() {
 
     
     // Model matrix: translate by (0, -1, -3)
+    const halfHeight = 0.5 * (max[2] - min[2]) * normalizationScale * s0;
     const translationMatrix = new Float32Array([
         1, 0,  0,  0,
         0, 1,  0,  0,
         0, 0,  1,  0,
-        0, -1, -3, 1
+        0, -1 + halfHeight, -3, 1
     ]);
 
     // Combine translation and scaling
@@ -256,7 +255,7 @@ async function main() {
     );
 
     // Camera view
-    const eye = [0, -0.4, 0];
+    const eye = [0, 0.2, 0];
     const target = [0, -1, -3];
 
     const viewMatrix = lookAt(
