@@ -238,7 +238,6 @@ async function main() {
         0, 0, 0, 1
     ]);
 
-    
     // Model matrix: translate by (0, -1, -3)
     const halfHeight = 0.5 * (max[2] - min[2]) * normalizationScale * s0;
     const translationMatrix = new Float32Array([
@@ -255,7 +254,7 @@ async function main() {
     );
 
     // Camera view
-    const eye = [0, 0.2, 0];
+    const eye = [0, -0.5, 0];
     const target = [0, -1, -3];
 
     const viewMatrix = lookAt(
