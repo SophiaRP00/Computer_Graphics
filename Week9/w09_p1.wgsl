@@ -1,4 +1,3 @@
-
 struct Camera {
     viewProjection: mat4x4<f32>,
     modelMatrix: mat4x4<f32>
@@ -30,7 +29,7 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
     input.position;
 
     // Display normals as RGB colors.
-    output.normal = normalize(input.normal.xyz);
+    output.normal = normalize((camera.modelMatrix * vec4<f32>(input.normal.xyz, 0.0)).xyz);
     output.color = input.color;
 
     return output;
