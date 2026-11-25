@@ -6,7 +6,7 @@ async function main() {
         return;
     }
 
-    const canvas = document.getElementById("webgpu");
+    const canvas = document.getElementById("s224222");
     const adapter = await navigator.gpu.requestAdapter();
 
     if (!adapter) {
