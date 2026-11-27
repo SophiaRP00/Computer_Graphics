@@ -84,8 +84,8 @@ async function main()
     let indexBuffer;
 
     const options = {
-        mipmap: true,
-        flipY: true,
+        mipmap: false,
+        flipY: false,
     }; 
 
     // Creating texture with MIPMAPS
