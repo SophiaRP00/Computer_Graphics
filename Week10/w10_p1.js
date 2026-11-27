@@ -39,7 +39,7 @@ async function main()
 
     // Load shader
     const shaderCode =
-        await fetch("w07_p1.wgsl?v=" + Date.now(),{
+        await fetch("w10_p1.wgsl?v=" + Date.now(),{
             cache: "no-store"
         })
             .then(response => response.text());
