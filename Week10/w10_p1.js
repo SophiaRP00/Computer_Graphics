@@ -1,7 +1,6 @@
 "use strict";
 
 import { generateMipmap, numMipLevels } from "./genmipmap.js";
-
 window.onload = function() {
     main();
 }
@@ -36,7 +35,6 @@ async function main()
         format: canvasFormat
     });
 
-
     // Load shader
     const shaderCode =
         await fetch("w10_p1.wgsl?v=" + Date.now(),{
@@ -58,13 +56,13 @@ async function main()
 
     // Load Cube Map
     // Code from slides
-      var cubemap = [
-    'cubemap/brightday2_posx.png',
-    'cubemap/brightday2_negx.png',
-    'cubemap/brightday2_posy.png',
-    'cubemap/brightday2_negy.png',
-    'cubemap/brightday2_posz.png',
-    'cubemap/brightday2_negz.png'
+    var cubemap = [
+        'cubemap/brightday2_posx.png',
+        'cubemap/brightday2_negx.png',
+        'cubemap/brightday2_posy.png',
+        'cubemap/brightday2_negy.png',
+        'cubemap/brightday2_posz.png',
+        'cubemap/brightday2_negz.png'
 ];
 
     let images = [];
@@ -74,6 +72,61 @@ async function main()
         images.push(await createImageBitmap(blob, { colorSpaceConversion: 'none'}));
     }
 
+    // MOUSE EVENT LISTENERS
+    // Camera Variables
+    let camera = {
+        radius: 3.0,
+        theta: 0.0,
+        phi: Math.PI / 2,
+        target: [0, 0, 0]
+    };
+
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    canvas.style.touchAction = "none";
+
+    // Mouse pressed
+    canvas.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+    
+        isDragging = true;
+    
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+    
+        canvas.setPointerCapture(event.pointerId);
+    });
+    
+    // Mouse released
+    canvas.addEventListener("pointerup", () => {
+        isDragging = false;
+    });
+    
+    canvas.addEventListener("pointercancel", () => {
+        isDragging = false;
+    });
+    
+    // Mouse movement
+    canvas.addEventListener("pointermove", (event) => {
+    
+        if (!isDragging) return;
+    
+        const dx = event.clientX - lastMouseX;
+        const dy = event.clientY - lastMouseY;
+    
+        camera.theta -= dx * 0.01;
+        camera.phi += dy * 0.01;
+        camera.phi = Math.max(
+            0.01,
+            Math.min(Math.PI - 0.01, camera.phi)
+        );
+    
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+    });
+        
     // SPHERE
     const M_SQRT2 = Math.sqrt(2.0);
     const M_SQRT6 = Math.sqrt(6.0);
@@ -140,7 +193,8 @@ async function main()
             indices
         );
     }
-
+        
+    //Buffers
     const vertexData = flatten(positions);
 
     if (positionBuffer) {
@@ -181,14 +235,12 @@ async function main()
 }
 
     // UNIFORM BUFFER
-
     const uniformBuffer = device.createBuffer({
         size: 64,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     });
 
     // BIND GROUP LAYOUT
-
     const bindGroupLayout = device.createBindGroupLayout({
         entries: [
             {
@@ -251,7 +303,6 @@ async function main()
         });
 
     // RENDER PIPELINE
-
     const pipeline =
         device.createRenderPipeline({
             layout:
@@ -308,11 +359,9 @@ async function main()
             },
         });
 
-    // CAMERA - Translation & 45 Degree Angle
-
+    // CAMERA Variables
     const aspect =
         canvas.width / canvas.height;
-
 
     // 45 degree vertical field of view
     const projection =
@@ -368,12 +417,17 @@ async function main()
 
     function render(timestamp)
     {
-        const eye = [0, 0, 3]
+        const eye = [
+            camera.radius * Math.sin(camera.phi) * Math.sin(camera.theta),
+            camera.radius * Math.cos(camera.phi),
+            camera.radius * Math.sin(camera.phi) * Math.cos(camera.theta)
+            ];
+
         const view = lookAt(
-            eye,
-            [0, 0, 0],
-            [0, 1, 0]
-        );
+            eye, 
+            camera.target,
+            [0,1,0]
+            );
 
         const commandEncoder =
             device.createCommandEncoder();
@@ -519,26 +573,19 @@ function multiply(a, b)
         new Float32Array(16);
 
     for (let col = 0; col < 4; col++) {
-
         for (let row = 0; row < 4; row++) {
 
             result[col * 4 + row] =
 
                 a[0 * 4 + row] *
                 b[col * 4 + 0]
-
                 +
-
                 a[1 * 4 + row] *
                 b[col * 4 + 1]
-
                 +
-
                 a[2 * 4 + row] *
                 b[col * 4 + 2]
-
                 +
-
                 a[3 * 4 + row] *
                 b[col * 4 + 3];
         }
@@ -550,11 +597,8 @@ function multiply(a, b)
 // ROTATION AROUND X & Y AXIS
 function rotationX(angle)
 {
-    const c =
-        Math.cos(angle);
-
-    const s =
-        Math.sin(angle);
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
 
     return new Float32Array([
 
@@ -567,11 +611,8 @@ function rotationX(angle)
 
 function rotationY(angle)
 {
-    const c =
-        Math.cos(angle);
-
-    const s =
-        Math.sin(angle);
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
 
     return new Float32Array([
 
