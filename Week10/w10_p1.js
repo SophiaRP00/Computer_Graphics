@@ -369,7 +369,7 @@ async function main()
     function render(timestamp)
     {
         const radius = 3;
-        const angle = timestamp * 0.0005; // orbit speed
+        const angle = timestamp
 
         const eye = [
             radius * Math.sin(angle),
@@ -395,12 +395,9 @@ async function main()
             commandEncoder.beginRenderPass({
 
                 colorAttachments: [{
-
                     view:
                         textureView,
-
                     clearValue: {
-
                         r: 1,
                         g: 1,
                         b: 1,
@@ -421,7 +418,6 @@ async function main()
                 depthStoreOp: "store", 
             }
             });
-
 
         // SET PIPELINE
         renderPass.setPipeline(
@@ -571,11 +567,8 @@ function rotationX(angle)
     return new Float32Array([
 
         1, 0, 0, 0,
-
         0, c, s, 0,
-
         0, -s, c, 0,
-
         0, 0, 0, 1
     ]);
 }
@@ -591,11 +584,8 @@ function rotationY(angle)
     return new Float32Array([
 
         c, 0, -s, 0,
-
         0, 1, 0, 0,
-
         s, 0, c, 0,
-
         0, 0, 0, 1
     ]);
 }
@@ -606,11 +596,8 @@ function translation(x, y, z)
     return new Float32Array([
 
         1, 0, 0, 0,
-
         0, 1, 0, 0,
-
         0, 0, 1, 0,
-
         x, y, z, 1
     ]);
 }
