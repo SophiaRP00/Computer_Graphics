@@ -368,15 +368,7 @@ async function main()
 
     function render(timestamp)
     {
-        const radius = 3;
-        const angle = timestamp
-
-        const eye = [
-            radius * Math.sin(angle),
-            0,
-            radius * Math.cos(angle)
-        ];
-
+        const eye = [0, 0, 3]
         const view = lookAt(
             eye,
             [0, 0, 0],
